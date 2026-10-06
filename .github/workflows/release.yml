@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            script: dist:win
+          - os: macos-latest
+            name: macOS
+            script: dist:mac
+          - os: ubuntu-latest
+            name: Linux
+            script: dist:linux
+    runs-on: ${{ matrix.os }}
+    env:
+      # Inlined into the main bundle at build time (see electron.vite.config.ts envPrefix).
+      MSA_CLIENT_ID: ${{ secrets.MSA_CLIENT_ID }}
+      SHARD_MANIFEST_URL: ${{ vars.SHARD_MANIFEST_URL }}
+      SHARD_BUNDLED_MODS_URL: ${{ vars.SHARD_BUNDLED_MODS_URL }}
+      SHARD_COSMETICS_URL: ${{ vars.SHARD_COSMETICS_URL }}
+      MODRINTH_CONTACT: ${{ vars.MODRINTH_CONTACT }}
+      # electron-builder publishes to the GitHub release for this tag.
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Optional code signing. Leave unset to ship unsigned builds.
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools rpm
+      - run: npm ci
+      - run: npm run icons
+      - name: Build and publish
+        run: npm run ${{ matrix.script }} -- --publish always
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-launcher-${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.yml
+            dist/*.blockmap
+          if-no-files-found: warn

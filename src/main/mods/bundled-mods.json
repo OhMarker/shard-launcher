@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-06T00:00:00Z",
+  "mods": [
+    {
+      "slug": "fabric-api",
+      "name": "Fabric API",
+      "required": true,
+      "locked": true,
+      "description": "Core library every Fabric mod depends on.",
+      "configFiles": []
+    },
+    {
+      "slug": "sodium",
+      "name": "Sodium",
+      "required": false,
+      "locked": true,
+      "description": "Modern rendering engine. The biggest FPS win on any machine.",
+      "configFiles": ["config/sodium-options.json", "config/sodium-mixins.properties", "config/sodium-fingerprint.json"]
+    },
+    {
+      "slug": "lithium",
+      "name": "Lithium",
+      "required": false,
+      "locked": true,
+      "description": "General-purpose game logic optimizations without changing behaviour.",
+      "configFiles": ["config/lithium.properties"]
+    },
+    {
+      "slug": "iris",
+      "name": "Iris Shaders",
+      "required": false,
+      "locked": true,
+      "description": "Shader support compatible with Sodium.",
+      "configFiles": ["config/iris.properties"]
+    },
+    {
+      "slug": "entityculling",
+      "name": "Entity Culling",
+      "required": false,
+      "locked": true,
+      "description": "Skips rendering entities you cannot see.",
+      "configFiles": ["config/entityculling.json"]
+    },
+    {
+      "slug": "ferrite-core",
+      "name": "FerriteCore",
+      "required": false,
+      "locked": true,
+      "description": "Cuts memory usage.",
+      "configFiles": ["config/ferritecore.mixin.properties"]
+    },
+    {
+      "slug": "immediatelyfast",
+      "name": "ImmediatelyFast",
+      "required": false,
+      "locked": true,
+      "description": "Speeds up immediate-mode rendering (HUD, text, particles).",
+      "configFiles": ["config/immediatelyfast.json"]
+    },
+    {
+      "slug": "krypton",
+      "name": "Krypton",
+      "required": false,
+      "locked": true,
+      "description": "Optimizes the networking stack.",
+      "configFiles": []
+    },
+    {
+      "slug": "dynamic-fps",
+      "name": "Dynamic FPS",
+      "required": false,
+      "locked": true,
+      "description": "Lowers frame rate when the window is unfocused.",
+      "configFiles": ["config/dynamic_fps-v1.json", "config/dynamic_fps.json"]
+    },
+    {
+      "slug": "sodium-extra",
+      "name": "Sodium Extra",
+      "required": false,
+      "locked": true,
+      "description": "Extra Sodium options: animations, particles, fog toggles.",
+      "configFiles": ["config/sodium-extra.properties", "config/sodium-extra-options.json"]
+    },
+    {
+      "slug": "reeses-sodium-options",
+      "name": "Reese's Sodium Options",
+      "required": false,
+      "locked": true,
+      "description": "Nicer video settings screen for Sodium.",
+      "configFiles": ["config/reeses-sodium-options.json"]
+    },
+    {
+      "slug": "modmenu",
+      "name": "Mod Menu",
+      "required": false,
+      "locked": true,
+      "description": "In-game mod list and config access.",
+      "configFiles": ["config/modmenu.json"]
+    },
+    {
+      "slug": "cloth-config",
+      "name": "Cloth Config API",
+      "required": false,
+      "locked": true,
+      "description": "Config screen library used by several bundled mods.",
+      "configFiles": []
+    }
+  ],
+  "sharedFiles": ["options.txt", "servers.dat", "config/fabric_loader_dependencies.json"],
+  "conflicts": [
+    { "slug": "optifine", "reason": "Not a Fabric mod and conflicts with Sodium/Iris." },
+    { "slug": "optifabric", "reason": "Incompatible with Sodium and Iris, which Shard ships." },
+    { "slug": "rubidium", "reason": "Forge port of Sodium; use the bundled Sodium instead." },
+    { "slug": "embeddium", "reason": "Fork of Sodium; conflicts with the bundled Sodium." },
+    { "slug": "oculus", "reason": "Forge port of Iris; use the bundled Iris instead." },
+    { "slug": "canvas", "reason": "Alternative renderer that conflicts with Sodium." },
+    { "slug": "vulkanmod", "reason": "Alternative renderer that conflicts with Sodium." },
+    { "slug": "nvidium", "reason": "Replaces Sodium's terrain renderer and breaks Shard overlays." },
+    { "slug": "starlight", "reason": "Merged into vanilla since 1.20; conflicts with Lithium." },
+    { "slug": "phosphor", "reason": "Obsolete lighting engine that conflicts with Lithium." },
+    { "slug": "c2me-fabric", "reason": "Chunk threading breaks crystal timing. Not supported with Shard." },
+    { "slug": "meteor-client", "reason": "Another PvP client; running two clients at once is not supported." },
+    { "slug": "wurst", "reason": "Another PvP client; running two clients at once is not supported." }
+  ]
+}

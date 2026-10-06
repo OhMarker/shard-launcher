@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  smoke:
+    name: Smoke screenshot (${{ matrix.os }})
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Render the shell headlessly (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron . --no-sandbox
+        env:
+          SHARD_SMOKE_SCREENSHOT: ${{ github.workspace }}/smoke-${{ matrix.os }}.png
+      - name: Render the shell headlessly
+        if: runner.os != 'Linux'
+        run: npx electron .
+        env:
+          SHARD_SMOKE_SCREENSHOT: ${{ github.workspace }}/smoke-${{ matrix.os }}.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}
+          path: smoke-*.png
+          if-no-files-found: error

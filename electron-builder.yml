@@ -1,0 +1,63 @@
+appId: gg.shard.launcher
+productName: Shard Launcher
+executableName: shard-launcher
+copyright: Copyright 2026 Shard
+artifactName: ${name}-${version}-${os}-${arch}.${ext}
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - "!**/*.map"
+asarUnpack:
+  - resources/**
+npmRebuild: false
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  shortcutName: Shard
+  artifactName: ${name}-setup-${version}-${arch}.${ext}
+  deleteAppDataOnUninstall: false
+mac:
+  icon: build/icon.png
+  category: public.app-category.games
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  darkModeSupport: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  target:
+    - target: dmg
+      arch: [universal]
+dmg:
+  artifactName: ${name}-${version}-${arch}.${ext}
+  contents:
+    - x: 140
+      y: 190
+    - x: 420
+      y: 190
+      type: link
+      path: /Applications
+linux:
+  icon: build/icon.png
+  category: Game
+  synopsis: Shard Launcher - Sharpen your crystal PvP.
+  maintainer: Shard <launcher@shard.invalid>
+  target:
+    - AppImage
+    - deb
+publish:
+  provider: github
+  owner: OhMarker
+  repo: shard-launcher
+  releaseType: release

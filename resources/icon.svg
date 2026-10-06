@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#05070c"/>
+    </linearGradient>
+    <linearGradient id="f1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a5f3fc"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="f2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="f3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#155e75"/>
+    </linearGradient>
+    <linearGradient id="f4" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e7490"/>
+      <stop offset="1" stop-color="#083344"/>
+    </linearGradient>
+    <linearGradient id="f5" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#cffafe"/>
+      <stop offset="1" stop-color="#67e8f9"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="268" r="170" fill="url(#glow)" filter="url(#blur)"/>
+  <g transform="translate(256 256) rotate(-12) translate(-256 -256)">
+    <polygon points="256,56 190,180 214,392 256,456" fill="url(#f3)"/>
+    <polygon points="256,56 214,392 256,456 256,300" fill="url(#f2)"/>
+    <polygon points="256,56 256,300 256,456 298,392" fill="url(#f1)"/>
+    <polygon points="256,56 322,180 298,392 256,456" fill="url(#f4)"/>
+    <polygon points="256,56 190,180 256,146" fill="url(#f5)" opacity="0.9"/>
+    <polygon points="256,56 256,146 322,180" fill="#22d3ee" opacity="0.7"/>
+    <polyline points="256,146 232,230 256,300" fill="none" stroke="#ecfeff" stroke-width="3" stroke-linejoin="round" opacity="0.75"/>
+    <polygon points="256,56 190,180 214,392 256,456 298,392 322,180" fill="none" stroke="#cffafe" stroke-width="4" stroke-linejoin="round" opacity="0.65"/>
+    <polygon points="140,220 128,246 146,266 160,238" fill="url(#f1)" opacity="0.85"/>
+    <polygon points="372,300 358,322 376,344 390,318" fill="url(#f2)" opacity="0.8"/>
+    <polygon points="352,160 346,174 358,184 366,170" fill="#a5f3fc" opacity="0.8"/>
+  </g>
+</svg>

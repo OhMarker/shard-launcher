@@ -1,0 +1,15 @@
+node_modules/
+out/
+dist/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+coverage/
+.vite/
+smoke-*.png
+smoke-*.json
+smoke-*.log
+.smoke-data/
+npm-install.log

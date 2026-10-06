@@ -19,6 +19,12 @@ win:
   target:
     - target: nsis
       arch: [x64, arm64]
+    # Single self-contained .exe: nothing to install, just run it. Cannot self-update.
+    - target: portable
+      arch: [x64]
+portable:
+  artifactName: ShardLauncher-${version}-portable.${ext}
+  requestExecutionLevel: user
 nsis:
   oneClick: false
   perMachine: false

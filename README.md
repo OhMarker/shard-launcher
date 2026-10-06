@@ -208,10 +208,19 @@ stable codes rather than stack traces.
 ## Build and release
 
 ```bash
-npm run dist:win      # NSIS installer (x64 + arm64)
+npm run dist:win      # NSIS installer (x64 + arm64) + portable single .exe (x64)
 npm run dist:mac      # universal DMG
 npm run dist:linux    # AppImage + .deb
 ```
+
+Windows builds produce two downloads:
+
+| File | What it is |
+| --- | --- |
+| `shard-launcher-setup-<version>-x64.exe` | Installer. Start-menu entry, auto-updates in place. |
+| `ShardLauncher-<version>-portable.exe` | One self-contained file. Nothing to install: download, double-click, play. It cannot update itself, so the Updates tab links to the newest download instead. Data still lives in `%APPDATA%/Shard` unless `SHARD_DATA_DIR` is set. |
+
+Offer both on your download page; most players want the portable one.
 
 Releases are automated: push a tag `v1.2.3` and `.github/workflows/release.yml` lints, tests,
 builds all three platforms and publishes the installers plus the `latest*.yml` update feeds to the

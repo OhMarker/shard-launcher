@@ -4,6 +4,20 @@ on:
   push:
     tags:
       - 'v*'
+  # Rebuild one or all platforms for an existing release tag without re-tagging
+  # (for example after fixing a platform-specific build problem).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and publish, e.g. v0.1.0
+        required: true
+        type: string
+      platform:
+        description: Which platform to build
+        required: true
+        default: all
+        type: choice
+        options: [all, windows, macos, linux]
 
 permissions:
   contents: write
@@ -14,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -26,18 +42,22 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     needs: verify
+    if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == matrix.key }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             name: Windows
+            key: windows
             script: dist:win
           - os: macos-latest
             name: macOS
+            key: macos
             script: dist:mac
           - os: ubuntu-latest
             name: Linux
+            key: linux
             script: dist:linux
     runs-on: ${{ matrix.os }}
     env:
@@ -49,14 +69,10 @@ jobs:
       MODRINTH_CONTACT: ${{ vars.MODRINTH_CONTACT }}
       # electron-builder publishes to the GitHub release for this tag.
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # Optional code signing. Leave unset to ship unsigned builds.
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -66,6 +82,32 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools rpm
       - run: npm ci
       - run: npm run icons
+      - name: Configure optional code signing
+        # electron-builder treats an empty CSC_LINK as a certificate path and aborts with
+        # "not a file", so the signing variables are exported only when they are configured.
+        # Leave the secrets unset to ship unsigned builds.
+        shell: bash
+        env:
+          CSC_LINK_SECRET: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD_SECRET: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD_SECRET: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$CSC_LINK_SECRET" ]; then
+            echo "CSC_LINK=$CSC_LINK_SECRET" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD_SECRET" >> "$GITHUB_ENV"
+            echo "Code-signing certificate configured."
+          else
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+            echo "No code-signing certificate configured; shipping unsigned builds."
+          fi
+          if [ -n "$APPLE_ID_SECRET" ]; then
+            echo "APPLE_ID=$APPLE_ID_SECRET" >> "$GITHUB_ENV"
+            echo "APPLE_APP_SPECIFIC_PASSWORD=$APPLE_APP_SPECIFIC_PASSWORD_SECRET" >> "$GITHUB_ENV"
+            echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET" >> "$GITHUB_ENV"
+            echo "Apple notarization credentials configured."
+          fi
       - name: Build and publish
         run: npm run ${{ matrix.script }} -- --publish always
       - uses: actions/upload-artifact@v4

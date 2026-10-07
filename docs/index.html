@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shard Launcher · Sharpen your crystal PvP</title>
+  <meta name="description" content="Shard is a free Minecraft launcher and legit Fabric client for crystal PvP. One click sets up Fabric, the Shard client and a tuned mod set. Download the portable Windows build or the installer.">
+  <meta property="og:title" content="Shard Launcher">
+  <meta property="og:description" content="Sharpen your crystal PvP. A free launcher and legit client for Minecraft 1.21+.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="screenshot.png">
+  <meta name="theme-color" content="#07090f">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090f;
+      --surface: #0d121c;
+      --surface-2: #121a27;
+      --border: #1b2534;
+      --text: #e6ebf4;
+      --muted: #8d97ab;
+      --accent: #22d3ee;
+      --accent-strong: #0891b2;
+      --accent-soft: rgba(34, 211, 238, 0.12);
+      --radius: 14px;
+      --max: 1080px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(700px 400px at 15% -5%, rgba(34, 211, 238, 0.14), transparent 70%),
+        radial-gradient(600px 500px at 95% 20%, rgba(8, 145, 178, 0.10), transparent 70%);
+      z-index: -1;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(12px);
+      background: rgba(7, 9, 15, 0.75);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; font-size: 18px; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; }
+    .brand span { color: var(--muted); font-weight: 500; font-size: 14px; margin-left: 2px; }
+    .nav-links { display: flex; gap: 22px; font-size: 14px; font-weight: 500; }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero { padding: 84px 0 40px; text-align: center; }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin: 0 0 18px;
+      font-weight: 800;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p.lead { max-width: 640px; margin: 0 auto 32px; color: var(--muted); font-size: 18px; }
+
+    .downloads { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 22px; border-radius: 12px;
+      font-weight: 600; font-size: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .btn:hover { text-decoration: none; transform: translateY(-1px); border-color: #2a3a4f; background: var(--surface-2); }
+    .btn.primary {
+      background: linear-gradient(180deg, #38dff5, var(--accent));
+      color: #06141a; border-color: transparent;
+      box-shadow: 0 10px 30px rgba(34, 211, 238, 0.28);
+    }
+    .btn.primary:hover { background: linear-gradient(180deg, #4ee5f8, #26d6f0); }
+    .btn svg { width: 18px; height: 18px; flex: none; }
+    .btn small { font-weight: 500; opacity: .75; font-size: 13px; }
+    .meta { margin: 16px 0 6px; color: var(--muted); font-size: 14px; min-height: 22px; }
+    .other { color: var(--muted); font-size: 14px; margin: 0; }
+    .other a { color: var(--text); }
+
+    .shot {
+      margin: 48px auto 0;
+      max-width: 960px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(34, 211, 238, 0.08);
+      overflow: hidden;
+    }
+    .shot img { display: block; width: 100%; height: auto; }
+
+    section { padding: 56px 0; }
+    section h2 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; }
+    section p.sub { color: var(--muted); margin: 0 0 28px; max-width: 640px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .card .ic {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: grid; place-items: center;
+      background: var(--accent-soft); color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .card .ic svg { width: 20px; height: 20px; }
+    .card h3 { margin: 0 0 6px; font-size: 16px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+    td:first-child { font-weight: 600; white-space: nowrap; }
+    .tablewrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+
+    .fair {
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      background: linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(34, 211, 238, 0.02));
+      border-radius: var(--radius);
+      padding: 24px 26px;
+    }
+    .fair ul { margin: 10px 0 0; padding-left: 20px; color: var(--muted); }
+    .fair li { margin: 4px 0; }
+
+    details { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 10px; }
+    summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--muted); font-weight: 500; }
+    details[open] summary::after { content: "–"; }
+    details div { padding: 0 18px 16px; color: var(--muted); font-size: 15px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; background: var(--surface-2); padding: 2px 6px; border-radius: 6px; color: var(--text); }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: 13.5px; }
+    footer .row { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: space-between; align-items: center; }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+    footer .legal { margin-top: 14px; max-width: 760px; }
+
+    @media (max-width: 640px) {
+      .nav-links { gap: 14px; }
+      .hero { padding-top: 56px; }
+      .btn { width: 100%; justify-content: center; }
+      th, td { padding: 10px; }
+      td:first-child { white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#"><img src="icon.svg" alt="">Shard <span>Launcher</span></a>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#fair-play">Fair play</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/OhMarker/shard-launcher" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <h1>Sharpen your <em>crystal PvP</em>.</h1>
+      <p class="lead">
+        Shard is a free launcher for Minecraft 1.21 and newer. Pick a version and it sets up Fabric,
+        the Shard client and a tuned performance mod set for you. Nothing to configure.
+      </p>
+      <div class="downloads">
+        <a id="dl-primary" class="btn primary" href="https://github.com/OhMarker/shard-launcher/releases/latest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+          <span id="dl-primary-label">Download for Windows</span>
+        </a>
+        <a id="dl-secondary" class="btn" href="https://github.com/OhMarker/shard-launcher/releases/latest">
+          <span id="dl-secondary-label">Windows installer</span>
+        </a>
+      </div>
+      <p class="meta" id="dl-meta">Looking up the latest release…</p>
+      <p class="other" id="dl-other">
+        Also for <a id="dl-mac" href="https://github.com/OhMarker/shard-launcher/releases/latest">macOS</a>
+        and <a id="dl-linux" href="https://github.com/OhMarker/shard-launcher/releases/latest">Linux</a>
+        · <a href="https://github.com/OhMarker/shard-launcher/releases">All releases</a>
+      </p>
+      <div class="shot"><img src="screenshot.png" alt="The Shard Launcher home screen" width="1280" height="760" loading="lazy"></div>
+    </section>
+
+    <section id="features" class="wrap">
+      <h2>Everything in one place</h2>
+      <p class="sub">Shard replaces the vanilla launcher, a mod manager and a hand-built modpack with a single app.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>
+          <h3>Any 1.21+ version, one click</h3>
+          <p>Instances for every Minecraft release from 1.21 onward. Java, Fabric, libraries and assets download automatically and resume if your connection drops.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></div>
+          <h3>Shard Core, tuned for fights</h3>
+          <p>Sodium, Lithium, Iris, Entity Culling, FerriteCore, ImmediatelyFast, Krypton, Dynamic FPS and friends ship with every instance and update themselves.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8"/><path d="M12 18v2"/></svg></div>
+          <h3>The Shard client, installed for you</h3>
+          <p>A legit Fabric client with a click GUI, HUD editor and visual modules built for crystal PvP. New builds install on the next launch.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 14.5 16 10 4 20"/><path d="M4 4h16v16H4z"/></svg></div>
+          <h3>Skins and cosmetics</h3>
+          <p>A 3D skin viewer, a wardrobe of capes, wings and hats, and an emote wheel. Equip once and every instance picks it up.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg></div>
+          <h3>Shared settings across versions</h3>
+          <p>Options, servers and mod configs are synced between your instances, so a new Minecraft version feels exactly like the last one.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg></div>
+          <h3>Microsoft sign-in, kept on your PC</h3>
+          <p>Sign in with the account you already own. Tokens stay on your machine and are never sent anywhere except Microsoft and Mojang.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="downloads" class="wrap">
+      <h2>Portable or installer?</h2>
+      <p class="sub">Both are the same launcher. Most players want the portable one.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Download</th><th>What it is</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Portable (.exe)</td>
+              <td>One self-contained file. Download, double-click, play. Nothing is installed; the Updates tab links you to the newest build.</td>
+              <td>Trying Shard, USB sticks, shared PCs.</td>
+            </tr>
+            <tr>
+              <td>Installer (x64 / ARM64)</td>
+              <td>Adds a Start menu entry and a desktop shortcut and updates itself in place.</td>
+              <td>Your main gaming PC.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="fair-play" class="wrap">
+      <div class="fair">
+        <h2>Fair play, by design</h2>
+        <p class="sub" style="margin-bottom:0">Shard is a legit client. It is built to be allowed on servers, not to sneak past them.</p>
+        <ul>
+          <li>No combat or inventory automation. No aim, reach, velocity or auto-totem.</li>
+          <li>No movement or timing changes and no packets the vanilla client would not send.</li>
+          <li>No hidden-information rendering. If vanilla cannot show it, Shard will not either.</li>
+          <li>Features some servers still restrict, like Freelook, carry a per-server blacklist that turns them off there.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="faq" class="wrap">
+      <h2>Questions</h2>
+      <p class="sub">Short answers. The README on GitHub has the long ones.</p>
+      <details>
+        <summary>Windows says "Windows protected your PC". Is this safe?</summary>
+        <div>Shard builds are not code-signed yet, so SmartScreen warns about any new file. Click <b>More info</b>, then <b>Run anyway</b>. Every release is built by GitHub Actions from the public source, so you can verify it yourself.</div>
+      </details>
+      <details>
+        <summary>Do I need to own Minecraft?</summary>
+        <div>Yes. Shard signs you in with your Microsoft account and launches the Java Edition you already own. It is not a cracked launcher and offline accounts are not supported.</div>
+      </details>
+      <details>
+        <summary>Where does Shard keep my files?</summary>
+        <div>In <code>%APPDATA%\Shard</code> on Windows (instances, Java, assets, skins, logs). Set <code>SHARD_DATA_DIR</code> to move everything, or pick a folder in Settings.</div>
+      </details>
+      <details>
+        <summary>Can I add my own mods?</summary>
+        <div>Yes. The Mods tab searches Modrinth and installs mods into any instance. Shard Core mods are locked so a fight never breaks because something was removed by accident.</div>
+      </details>
+      <details>
+        <summary>Is Shard open source?</summary>
+        <div>Both halves are MIT licensed: the <a href="https://github.com/OhMarker/shard-launcher">launcher</a> and the <a href="https://github.com/OhMarker/shard-client">client</a>. Bug reports and pull requests are welcome.</div>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="row">
+        <div>© 2026 Shard · MIT License</div>
+        <div style="display:flex;gap:18px">
+          <a href="https://github.com/OhMarker/shard-launcher">Launcher source</a>
+          <a href="https://github.com/OhMarker/shard-client">Client source</a>
+          <a href="https://github.com/OhMarker/shard-launcher/issues">Report a bug</a>
+        </div>
+      </div>
+      <p class="legal">
+        Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.
+        Minecraft is a trademark of Mojang Synergies AB.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var REPO = 'OhMarker/shard-launcher';
+      var RELEASES = 'https://github.com/' + REPO + '/releases';
+      var $ = function (id) { return document.getElementById(id); };
+
+      var ua = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      var os = /mac/i.test(ua) ? 'mac' : /linux/i.test(ua) && !/android/i.test(navigator.userAgent) ? 'linux' : 'win';
+
+      function mb(bytes) { return Math.round(bytes / 1048576) + ' MB'; }
+      function pick(assets, re) {
+        for (var i = 0; i < assets.length; i++) if (re.test(assets[i].name)) return assets[i];
+        return null;
+      }
+      function link(id, asset, label, fallbackLabel) {
+        var a = $(id);
+        if (!a) return;
+        if (asset) { a.href = asset.browser_download_url; a.title = asset.name; }
+        else { a.href = RELEASES + '/latest'; }
+        var lbl = $(id + '-label');
+        if (lbl) lbl.textContent = asset ? label : fallbackLabel;
+      }
+
+      fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (rel) {
+          var assets = rel.assets || [];
+          var portable = pick(assets, /-portable\.exe$/i);
+          var setup = pick(assets, /setup-.*x64\.exe$/i);
+          var mac = pick(assets, /\.dmg$/i);
+          var linux = pick(assets, /\.AppImage$/i) || pick(assets, /\.deb$/i);
+          var version = String(rel.tag_name || '').replace(/^v/, '');
+          var date = rel.published_at ? new Date(rel.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+
+          var primary = os === 'mac' ? mac : os === 'linux' ? linux : portable;
+          var primaryLabel = os === 'mac' ? 'Download for macOS' : os === 'linux' ? 'Download for Linux' : 'Download for Windows';
+          link('dl-primary', primary, primaryLabel, 'View latest release');
+          if (os === 'win') link('dl-secondary', setup, 'Windows installer', 'All downloads');
+          else link('dl-secondary', portable, 'Windows portable', 'All downloads');
+          if (mac) $('dl-mac').href = mac.browser_download_url;
+          if (linux) $('dl-linux').href = linux.browser_download_url;
+
+          var parts = [];
+          if (version) parts.push('Version ' + version);
+          if (date) parts.push(date);
+          if (primary && primary.size) parts.push(mb(primary.size));
+          $('dl-meta').textContent = parts.length ? parts.join(' · ') : 'Latest release';
+        })
+        .catch(function () {
+          $('dl-meta').textContent = 'Could not reach GitHub for the latest build. The buttons open the releases page.';
+        });
+    })();
+  </script>
+</body>
+</html>

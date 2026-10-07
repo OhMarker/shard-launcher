@@ -39,26 +39,37 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  plan:
+    name: Choose platforms
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - id: pick
+        shell: bash
+        env:
+          PLATFORM: ${{ inputs.platform || 'all' }}
+        run: |
+          all='[
+            {"os": "windows-latest", "name": "Windows", "key": "windows", "script": "dist:win"},
+            {"os": "macos-latest",   "name": "macOS",   "key": "macos",   "script": "dist:mac"},
+            {"os": "ubuntu-latest",  "name": "Linux",   "key": "linux",   "script": "dist:linux"}
+          ]'
+          if [ "$PLATFORM" = "all" ]; then
+            matrix=$(echo "$all" | jq -c .)
+          else
+            matrix=$(echo "$all" | jq -c --arg k "$PLATFORM" '[.[] | select(.key == $k)]')
+          fi
+          echo "Building: $matrix"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build ${{ matrix.name }}
-    needs: verify
-    if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == matrix.key }}
+    needs: [verify, plan]
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            name: Windows
-            key: windows
-            script: dist:win
-          - os: macos-latest
-            name: macOS
-            key: macos
-            script: dist:mac
-          - os: ubuntu-latest
-            name: Linux
-            key: linux
-            script: dist:linux
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     env:
       # Inlined into the main bundle at build time (see electron.vite.config.ts envPrefix).

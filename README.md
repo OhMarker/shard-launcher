@@ -218,7 +218,7 @@ Windows builds produce two downloads:
 | File | What it is |
 | --- | --- |
 | `shard-launcher-setup-<version>-x64.exe` | Installer. Start-menu entry, auto-updates in place. |
-| `ShardLauncher-<version>-portable.exe` | One self-contained file. Nothing to install: download, double-click, play. It cannot update itself, so the Updates tab links to the newest download instead. Data still lives in `%APPDATA%/Shard` unless `SHARD_DATA_DIR` is set. |
+| `ShardLauncher-portable.exe` | One self-contained file. Nothing to install: download, double-click, play. It cannot update itself, so the Updates tab links to the newest download instead. Data still lives in `%APPDATA%/Shard` unless `SHARD_DATA_DIR` is set. The name carries no version, so `https://github.com/OhMarker/shard-launcher/releases/latest/download/ShardLauncher-portable.exe` is a permanent direct-download link to the newest build; the download page (`docs/`) points straight at it. |
 
 Offer both on your download page; most players want the portable one.
 

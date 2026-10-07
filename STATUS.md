@@ -9,11 +9,16 @@ Last updated 2026-10-07.
 - Published at https://github.com/OhMarker/shard-launcher (public). CI on `main` is green; the
   Linux smoke job used to fail intermittently (capturePage UnknownVizError under xvfb) and was fixed
   by disabling hardware acceleration for smoke renders and retrying the capture.
-- Windows builds exist in `dist/`: `ShardLauncher-0.1.0-portable.exe` (single file, for the website)
-  and `shard-launcher-setup-0.1.0-x64.exe` / `-arm64.exe` installers.
-- `docs/` is the download page (GitHub Pages from `main` / `docs`). It reads the latest GitHub
-  release at page load and links the portable exe, installer, macOS and Linux assets; until a
-  release exists the buttons open the releases page.
+- Windows builds exist in `dist/`: `ShardLauncher-0.1.0-portable.exe` (single file; builds made after
+  2026-10-07 name it `ShardLauncher-portable.exe` with no version) and
+  `shard-launcher-setup-0.1.0-x64.exe` / `-arm64.exe` installers.
+- `docs/` is the download page (GitHub Pages from `main` / `docs`). The Download button is a
+  direct file download: it points at the permanent link
+  `https://github.com/OhMarker/shard-launcher/releases/latest/download/ShardLauncher-portable.exe`,
+  which GitHub resolves to the newest release's file with no page in between. JavaScript only adds
+  the version, size, installer and macOS/Linux links. `docs/download/` is a shareable short link
+  that starts the same download immediately. GitHub Pages cannot hold the exe itself (100 MB file
+  limit; the launcher is ~114 MB because Electron is), so the file is stored as a release asset.
 - `.env` holds `MSA_CLIENT_ID=335a9f92-08ac-4f4a-9f9c-d0a00d4fb4dc` (Azure app "Shard Launcher",
   tenant bdc55f7d-dddc-4492-99f8-65509b6005fd, personal accounts, redirect http://localhost/shard-auth,
   public client flows on). The id is compiled into the builds above.

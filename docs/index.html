@@ -193,7 +193,7 @@
         the Shard client and a tuned performance mod set for you. Nothing to configure.
       </p>
       <div class="downloads">
-        <a id="dl-primary" class="btn primary" href="https://github.com/OhMarker/shard-launcher/releases/latest">
+        <a id="dl-primary" class="btn primary" href="https://github.com/OhMarker/shard-launcher/releases/latest/download/ShardLauncher-portable.exe" download>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
           <span id="dl-primary-label">Download for Windows</span>
         </a>
@@ -201,7 +201,7 @@
           <span id="dl-secondary-label">Windows installer</span>
         </a>
       </div>
-      <p class="meta" id="dl-meta">Looking up the latest release…</p>
+      <p class="meta" id="dl-meta">Windows 10 or 11 · 64-bit · one file, nothing to install</p>
       <p class="other" id="dl-other">
         Also for <a id="dl-mac" href="https://github.com/OhMarker/shard-launcher/releases/latest">macOS</a>
         and <a id="dl-linux" href="https://github.com/OhMarker/shard-launcher/releases/latest">Linux</a>
@@ -329,6 +329,10 @@
     (function () {
       var REPO = 'OhMarker/shard-launcher';
       var RELEASES = 'https://github.com/' + REPO + '/releases';
+      // Permanent direct-download address: GitHub resolves it to the newest release's file.
+      // The Download button already points here without JavaScript; the code below only adds
+      // version details and the installer / macOS / Linux links.
+      var PORTABLE_URL = RELEASES + '/latest/download/ShardLauncher-portable.exe';
       var $ = function (id) { return document.getElementById(id); };
 
       var ua = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
@@ -339,18 +343,27 @@
         for (var i = 0; i < assets.length; i++) if (re.test(assets[i].name)) return assets[i];
         return null;
       }
-      function link(id, asset, label, fallbackLabel) {
+      function setLink(id, href, label) {
         var a = $(id);
         if (!a) return;
-        if (asset) { a.href = asset.browser_download_url; a.title = asset.name; }
-        else { a.href = RELEASES + '/latest'; }
+        a.href = href;
         var lbl = $(id + '-label');
-        if (lbl) lbl.textContent = asset ? label : fallbackLabel;
+        if (lbl && label) lbl.textContent = label;
       }
 
       fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
-        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (r) {
+          if (r.status === 404) return null; // nothing published yet
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
         .then(function (rel) {
+          if (!rel) {
+            setLink('dl-primary', RELEASES, 'Not released yet');
+            setLink('dl-secondary', RELEASES, 'Check back soon');
+            $('dl-meta').textContent = 'The first public build is on its way.';
+            return;
+          }
           var assets = rel.assets || [];
           var portable = pick(assets, /-portable\.exe$/i);
           var setup = pick(assets, /setup-.*x64\.exe$/i);
@@ -359,11 +372,13 @@
           var version = String(rel.tag_name || '').replace(/^v/, '');
           var date = rel.published_at ? new Date(rel.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
 
-          var primary = os === 'mac' ? mac : os === 'linux' ? linux : portable;
-          var primaryLabel = os === 'mac' ? 'Download for macOS' : os === 'linux' ? 'Download for Linux' : 'Download for Windows';
-          link('dl-primary', primary, primaryLabel, 'View latest release');
-          if (os === 'win') link('dl-secondary', setup, 'Windows installer', 'All downloads');
-          else link('dl-secondary', portable, 'Windows portable', 'All downloads');
+          var primary = portable;
+          if (os === 'mac' && mac) { primary = mac; setLink('dl-primary', mac.browser_download_url, 'Download for macOS'); }
+          else if (os === 'linux' && linux) { primary = linux; setLink('dl-primary', linux.browser_download_url, 'Download for Linux'); }
+          else if (portable) setLink('dl-primary', portable.browser_download_url, 'Download for Windows');
+
+          if (os === 'win') { if (setup) setLink('dl-secondary', setup.browser_download_url, 'Windows installer'); }
+          else setLink('dl-secondary', PORTABLE_URL, 'Windows portable');
           if (mac) $('dl-mac').href = mac.browser_download_url;
           if (linux) $('dl-linux').href = linux.browser_download_url;
 
@@ -371,10 +386,10 @@
           if (version) parts.push('Version ' + version);
           if (date) parts.push(date);
           if (primary && primary.size) parts.push(mb(primary.size));
-          $('dl-meta').textContent = parts.length ? parts.join(' · ') : 'Latest release';
+          if (parts.length) $('dl-meta').textContent = parts.join(' · ');
         })
         .catch(function () {
-          $('dl-meta').textContent = 'Could not reach GitHub for the latest build. The buttons open the releases page.';
+          // GitHub's API was unreachable or rate-limited: the static direct link still works.
         });
     })();
   </script>

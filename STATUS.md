@@ -9,6 +9,17 @@ Last updated 2026-10-07.
 - Published at https://github.com/OhMarker/shard-launcher (public). CI on `main` is green; the
   Linux smoke job used to fail intermittently (capturePage UnknownVizError under xvfb) and was fixed
   by disabling hardware acceleration for smoke renders and retrying the capture.
+- **Release v0.1.0 is live** (tagged 2026-10-07; `MSA_CLIENT_ID` secret set). Assets: Windows
+  portable + x64/arm64 installers with `latest.yml`, Linux AppImage + deb with `latest-linux.yml`,
+  macOS universal dmg with `latest-mac.yml` (rebuilt via workflow_dispatch after the signing fix). Builds are unsigned (no `CSC_LINK`), so Windows shows a
+  SmartScreen warning and macOS requires "Open Anyway"; the site's FAQ explains both.
+- **Website is live at https://ohmarker.github.io/shard-launcher/** (GitHub Pages, `main`/`docs`).
+  Verified: the Download button resolves to the 114 MB exe with HTTP 200 and the page shows
+  "Version 0.1.0". Short link: https://ohmarker.github.io/shard-launcher/download/
+- The release workflow had two fixes on 2026-10-07: an empty optional `CSC_LINK` secret was
+  exported as an empty certificate path (macOS job failed with "not a file"), so signing variables
+  are now exported only when set; and `workflow_dispatch` (inputs `tag`, `platform`) rebuilds one
+  platform for an existing tag: `gh workflow run release.yml -f tag=v0.1.0 -f platform=macos`.
 - Windows builds exist in `dist/`: `ShardLauncher-0.1.0-portable.exe` (single file; builds made after
   2026-10-07 name it `ShardLauncher-portable.exe` with no version) and
   `shard-launcher-setup-0.1.0-x64.exe` / `-arm64.exe` installers.
@@ -33,27 +44,20 @@ Last updated 2026-10-07.
 - First release built and verified in-game for Minecraft 1.21.11; committed locally, not pushed
   (see ../shard-client/STATUS.md).
 
-## Owner-only steps (Claude's sandbox was refused these; run in this order)
+## Owner-only steps still open (Claude's sandbox cannot create public repos)
 1. Publish the client and its release: commands in ../shard-client/STATUS.md.
-2. Publish ../meta: command in ../meta/STATUS.md.
-3. Add the sign-in secret and tag the launcher so GitHub Actions publishes installers and the
-   update feed (run from this folder):
+2. Publish ../meta: command in ../meta/STATUS.md. Until then every Shard instance stays
+   "Client pending" (Fabric + Shard Core only).
 
-```bash
-gh secret set MSA_CLIENT_ID -R OhMarker/shard-launcher --body "335a9f92-08ac-4f4a-9f9c-d0a00d4fb4dc"
-```
+Done on 2026-10-07 by the owner: `MSA_CLIENT_ID` secret, tag `v0.1.0`, GitHub Pages enabled.
 
-```bash
-git tag v0.1.0 && git push origin v0.1.0
-```
-
-4. Turn on the download page (GitHub Pages, `main` branch, `/docs` folder):
-
-```bash
-gh api -X POST repos/OhMarker/shard-launcher/pages -f "source[branch]=main" -f "source[path]=/docs"
-```
-
-   It appears at https://ohmarker.github.io/shard-launcher/ a minute or two later.
+## Releasing the next launcher version
+1. Bump `version` in package.json, commit, `git tag v<version> && git push origin main v<version>`.
+2. The Release workflow builds all three platforms and publishes the release plus update feeds;
+   installed copies auto-update, the portable exe's Updates tab links to the site, and the website's
+   Download button serves the new file automatically (permanent `releases/latest/download` link).
+3. If one platform fails, fix it on `main` and rebuild just that platform:
+   `gh workflow run release.yml -f tag=v<version> -f platform=<windows|macos|linux>`.
 
 ## Gotchas
 - This machine's Claude sandbox virtualizes %APPDATA%: files it writes there land in

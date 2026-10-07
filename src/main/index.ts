@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, type NativeImage, Tray } from 'electron'
 import { APP_NAME, GITHUB_OWNER, GITHUB_REPO, MSA, URLS } from '@shared/constants'
 import { type AppContext, type Services } from './context'
 import { registerCoreIpc } from './ipc/core-handlers'
@@ -24,10 +24,28 @@ app.setPath('userData', join(configDir, 'electron-data'))
 app.setPath('sessionData', join(configDir, 'electron-data'))
 app.setName(APP_NAME)
 
+// Headless smoke renders (CI) must not depend on a GPU: xvfb has none, and capturePage then
+// fails with UnknownVizError when the compositor cannot allocate a GPU surface.
+if (process.env.SHARD_SMOKE_SCREENSHOT) app.disableHardwareAcceleration()
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   void bootstrap()
+}
+
+/** capturePage can fail transiently (UnknownVizError) right after the first paint; retry briefly. */
+async function captureWithRetry(win: BrowserWindow, attempts: number): Promise<NativeImage> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await win.webContents.capturePage()
+    } catch (err) {
+      lastError = err
+      if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+  throw lastError
 }
 
 async function bootstrap(): Promise<void> {
@@ -136,7 +154,7 @@ async function bootstrap(): Promise<void> {
         if (page) setTimeout(() => emit('app:navigate', { page }), 1200)
         setTimeout(async () => {
           try {
-            const image = await win.webContents.capturePage()
+            const image = await captureWithRetry(win, 5)
             const { writeFile } = await import('node:fs/promises')
             await writeFile(smokeShot, image.toPNG())
             log.info(`Smoke screenshot written to ${smokeShot}`)

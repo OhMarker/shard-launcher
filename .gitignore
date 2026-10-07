@@ -13,3 +13,6 @@ smoke-*.json
 smoke-*.log
 .smoke-data/
 npm-install.log
+
+# TypeScript incremental build state
+*.tsbuildinfo

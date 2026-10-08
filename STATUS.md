@@ -2,15 +2,16 @@
 
 Last updated 2026-10-08.
 
-## 0.2.0 (committed locally, not tagged or released yet)
-- Cosmetics are now just the OhMarker cape (4096x2048, built by `scripts/build-ohmarker-cape.py`
-  from `art/ohmarker-cape/`); the 14 sample cosmetics are removed. The 3D preview draws
-  high-resolution capes with smooth filtering. Empty wardrobe filters are hidden. No "Lunar"
-  wording left in user-facing text. Details in DECISIONS.md "0.2.0".
-- Verified: typecheck, lint, 264 tests; headless renders of the Cosmetics page with the bundled
-  catalogue and with the hosted one served locally (texture and preview downloaded and cached).
-- To publish: `git push origin main`, then `git tag v0.2.0 && git push origin v0.2.0` (the Release
-  workflow builds every platform); push ../meta (new `cosmetics.json` and `cosmetics/` folder).
+## 0.2.0: released 2026-10-08
+- https://github.com/OhMarker/shard-launcher/releases/tag/v0.2.0 (Windows, macOS, Linux; the
+  website's Download button serves it). Cosmetics are just the OhMarker cape (4096x2048, built by
+  `scripts/build-ohmarker-cape.py` from `art/ohmarker-cape/`), the 3D preview draws it with smooth
+  filtering, empty wardrobe filters are hidden, no "Lunar" wording. Details: DECISIONS.md "0.2.0".
+- meta serves the new `cosmetics.json` (texture hosted in meta) and Shard Client 0.5.0 as latest,
+  which draws the equipped cape in-game on your own player.
+- **On `main`, not released yet (next launcher version):** bundled cosmetic textures are copied
+  into `<data>/cosmetics/textures` too, so the in-game cape also works when the hosted catalogue
+  is unreachable (265 tests). Release it as 0.2.1 when convenient: bump `version`, tag, push.
 
 ## Shard Launcher (this repo)
 - Complete and verified: 264 unit tests, lint and typecheck clean, headless renders of every page,
@@ -53,7 +54,8 @@ Last updated 2026-10-08.
   push, not a launcher release.
 
 ## Shard Client (../shard-client)
-- **0.4.0 is published (2026-10-08):** https://github.com/OhMarker/shard-client/releases/tag/v0.4.0,
+- **0.5.0 is published (2026-10-08):** the launcher cape shows in-game (Cosmetics module).
+- **0.4.0 was published earlier the same day:** https://github.com/OhMarker/shard-client/releases/tag/v0.4.0,
   meta `latest` 0.4.0. Every Shard 1.21.11 instance installs it on the next launch. It is the UI
   overhaul: new menu, sharp text, Lucide icons, HUD editor, fight modules, Low Fire, Crosshair
   editor, Shield, GUI Scales, borderless fullscreen and Quick setup (../shard-client/CHANGELOG.md).

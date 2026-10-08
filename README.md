@@ -26,6 +26,11 @@ Client:
   `.mrpack` import and "copy my mods to another version".
 - **3D player** (skinview3d), **skin changer** (upload, from username, from URL, library, capes),
   **cosmetics wardrobe** with live cape/elytra preview.
+- **Shard online** (0.3.0): earn tokens by playing (10 for every 10 minutes in game), buy capes
+  such as the OhMarker cape (1000 tokens) and wear them where every Shard player sees them, add
+  friends by Minecraft name and see who is in game, and an Admin page for the owner (balances,
+  grants, shop prices). Sign-in uses Mojang's server-join check; the Minecraft token only ever
+  goes to Mojang. Without the API the launcher works exactly as before.
 - **Self-updates** through GitHub Releases, Discord Rich Presence, offline mode.
 
 See [DECISIONS.md](DECISIONS.md) for why things are the way they are and
@@ -91,6 +96,10 @@ time (so a packaged build carries them). Settings → Integrations can override 
 | `SHARD_MANIFEST_URL` | no | Hosted `shard-manifest.json` (client builds). |
 | `SHARD_BUNDLED_MODS_URL` | no | Hosted `bundled-mods.json` (overrides the shipped set). |
 | `SHARD_COSMETICS_URL` | no | Hosted `cosmetics.json`. |
+| `SHARD_SERVICES_URL` | no | Hosted `services.json` (`{ "api": "https://..." }`), where the Shard API lives. |
+| `SHARD_API_URL` | no | Development/testing: use this Shard API base URL instead of `services.json` (plain `http://127.0.0.1` is accepted only in unpackaged builds). Runtime only. |
+| `SHARD_API_DEV_AUTH` | no | `1` in an unpackaged build: sign in to a local `wrangler dev` API with `devUuid` instead of Mojang's join check. Ignored when packaged. |
+| `SHARD_DEV_FAKE_ACCOUNT` | no | `name:uuid` in an unpackaged build: an identity for the Shard online features only (screenshots without a Microsoft account). It cannot launch the game and is ignored when packaged. |
 | `MODRINTH_CONTACT` | no | Contact placed in the Modrinth `User-Agent` (email or URL). Defaults to the GitHub repository URL. |
 | `SHARD_DATA_DIR` | no | Portable mode: settings, accounts, logs and all game data live in this folder instead of the platform default. Runtime only. |
 
@@ -186,6 +195,7 @@ src/
     mods/          Shard Core sync, user mods, .mrpack import, bundled-mods.json
     shard/         client manifest, jar sync, launcher-info.json, shared config layer
     cosmetics/     wardrobe manifest, equipped.json
+    shard-api/     Shard API client: services.json, Mojang-join sign-in, tokens, shop, friends, admin
     updates/       electron-updater, GitHub release notes, Mojang news
     discord/       Rich Presence over Discord IPC
     ipc/           typed router and core handlers
@@ -229,7 +239,7 @@ beta channel = prereleases). Configure these repository secrets/variables:
 | Secret / variable | Purpose |
 | --- | --- |
 | `MSA_CLIENT_ID` (secret) | baked into the build |
-| `SHARD_MANIFEST_URL`, `SHARD_BUNDLED_MODS_URL`, `SHARD_COSMETICS_URL`, `MODRINTH_CONTACT` (variables) | optional overrides |
+| `SHARD_MANIFEST_URL`, `SHARD_BUNDLED_MODS_URL`, `SHARD_COSMETICS_URL`, `SHARD_SERVICES_URL`, `MODRINTH_CONTACT` (variables) | optional overrides |
 | `CSC_LINK`, `CSC_KEY_PASSWORD` (secrets) | optional Windows/macOS code-signing certificate |
 | `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` (secrets) | optional macOS notarisation (set `notarize: true` in `electron-builder.yml`) |
 

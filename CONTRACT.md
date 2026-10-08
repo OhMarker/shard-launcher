@@ -14,6 +14,7 @@ environment variables or per user from Settings → Integrations.
 | `shard-manifest.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/shard-manifest.json` | client release pipeline |
 | `bundled-mods.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/bundled-mods.json` | launcher team |
 | `cosmetics.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/cosmetics.json` | cosmetics team |
+| `services.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/services.json` | API owner (see section 7) |
 
 Files written by the launcher for the client to read at runtime:
 
@@ -162,9 +163,13 @@ the OhMarker cape) and is used when the hosted copy is unavailable.
 | `availability` | enum | `free` (owned by everyone) or `locked` (needs an unlock; see ownership). |
 | `tags` | string[] | Free-form, used for search. |
 
-**Ownership.** Today every `free` cosmetic is owned and `locked` cosmetics are shown dimmed.
-Unlocks are stored locally in `<data>/cosmetics/owned.json` as an array of ids; a future account
-service can write that file or replace this rule.
+**Ownership.** Since 0.3.0 the Shard API (section 7) decides ownership of every item its shop
+(`GET /v1/shop`) sells, whatever `availability` says: owned when `me.owned` lists it (admins own
+everything), otherwise buyable for tokens; while signed out those items are not owned. Items the
+shop does not sell, and everything when the API is unavailable, keep the catalogue rule: `free`
+is owned, `locked` is shown dimmed unless `<data>/cosmetics/owned.json` (an array of ids) lists
+it. Shop items should be `locked` in the catalogue (the bundled `cape-ohmarker` is since 0.3.0)
+so a launcher without the API does not hand them out.
 
 ---
 
@@ -245,3 +250,32 @@ The launcher also sets environment variables on the game process: `SHARD_INSTANC
 - The launcher never requires a specific client version. The client should log the
   `launcherVersion` it saw and degrade gracefully when a field it wants is missing.
 - Launcher errors in any of these integrations are non-fatal: the game still launches.
+
+---
+
+## 7. `services.json` and the Shard API
+
+```json
+{ "api": "https://shard-api.example.workers.dev" }
+```
+
+`services.json` tells the launcher where the Shard API lives, so the API can move without a
+launcher release. `api` must be an `https` base URL (no credentials, query or fragment); anything
+else is ignored. It is cached like the other manifests (6 hours, last good copy offline). When it
+is missing or the API cannot be reached, the online features show "Shard online features are not
+available yet" and everything else keeps working.
+
+The API itself is specified in `shard-api/API.md`. What the launcher relies on:
+
+- **Sign-in per Microsoft account:** `POST /v1/auth/challenge`, then Mojang
+  `POST https://sessionserver.mojang.com/session/minecraft/join`
+  `{ accessToken, selectedProfile, serverId }` (204), then
+  `POST /v1/auth/verify { username, serverId }` returns `{ session, me }`. The Minecraft access
+  token is sent to Mojang only. The session token stays in the launcher's memory; on a 401 the
+  launcher signs in once more and retries.
+- `GET /v1/me`, `GET /v1/shop`, `POST /v1/buy`, `POST /v1/equip`, the `/v1/friends*` calls and
+  the `/v1/admin/*` calls, with errors as `{ "error": "<message>" }` (the message is shown to the
+  player as-is).
+- **Equipping a cape** the shop sells sends `POST /v1/equip` and still writes `equipped.json`
+  (section 4): the API is what other players see, `equipped.json` is what the local client reads.
+- Tokens are earned by the game's heartbeats (`POST /v1/heartbeat`), not by the launcher.

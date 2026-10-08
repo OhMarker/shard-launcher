@@ -2,6 +2,26 @@
 
 Last updated 2026-10-08.
 
+## 0.3.0: built and verified locally 2026-10-08 (not pushed, tagged or released)
+- **Shard online** against the Shard API (`../shard-api`, contract in its API.md): token balance and
+  "+10 every 10 min you play" on the Cosmetics page, Buy (with confirm) / "Need N more", ownership
+  from the API (the bundled `cape-ohmarker` is now `locked`), equipping a cape goes to the API and
+  still writes `equipped.json`; a new **Friends** page (add by name, accept/decline/cancel, remove,
+  in game vs last seen, 30 s polling); an **Admin** page only for admins (search players, give/take
+  tokens, grant/revoke cosmetics, shop prices). Main-process client in `src/main/shard-api/`,
+  pure rules in `src/shared/online.ts`. Details: DECISIONS.md "0.3.0", CONTRACT.md section 7.
+- The API's address comes from `services.json` in the meta repo (`{ "api": "https://..." }`).
+  **It does not exist yet**, so a 0.3.0 build shows "Shard online features are not available yet"
+  until it is pushed to meta. meta's `cosmetics.json` still says `cape-ohmarker` is `free`; set it
+  to `locked` so launchers without the API stop treating it as owned.
+- Verified: typecheck, lint, 294 Vitest tests (265 before); the service run against the local `wrangler dev`
+  API (sign-in, buy refusal, equip, friends 404 message, admin tokens/grant/revoke/price); headless
+  screenshots in `docs-screens/0.3.0/` (Cosmetics with 0 and 1200 tokens and signed out, Friends
+  with a friend in game and a request, Friends with no API, Admin as OhMarkerr). Not verified: a
+  real Microsoft account against Mojang's join endpoint (no account in the sandbox).
+- The local API's database had to be migrated (`wrangler d1 migrations apply shard --local`) after
+  the deploy changed its database id.
+
 ## 0.2.0: released 2026-10-08
 - https://github.com/OhMarker/shard-launcher/releases/tag/v0.2.0 (Windows, macOS, Linux; the
   website's Download button serves it). Cosmetics are just the OhMarker cape (4096x2048, built by

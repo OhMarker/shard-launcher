@@ -84,3 +84,44 @@ Running log of product and engineering decisions made while building Shard Launc
 - **Hosted catalogue.** meta's `cosmetics.json` points the cape's texture and preview at copies in
   the meta repository (https) rather than `bundled://`, so launchers that do not bundle the cape
   (0.1.0) still show it.
+
+## 0.3.0 (2026-10-08): Shard online
+- **The API decides ownership when it is up.** Items the shop sells are owned only when `me.owned`
+  says so (admins own everything), whatever the catalogue's `availability` field says; while signed
+  out they are not owned. Without the API the catalogue rule stands, so the bundled
+  `cape-ohmarker` became `locked` (otherwise an offline launcher would hand out a 1000-token cape).
+  The rule is one pure function (`effectiveOwned` in `src/shared/online.ts`) used by the renderer
+  for display and by the main process for the equip check.
+- **Equipping a cape goes through the API, and still writes `equipped.json`.** The API checks
+  ownership and is what every other player sees; the local client keeps reading `equipped.json`.
+  The slot is validated locally first so a bad request never reaches the API, and capes the shop
+  does not sell are left to the catalogue. There is no separate "equip" IPC channel:
+  `cosmetics:equip` does both.
+- **Sign-in is Mojang's server join, per Microsoft account.** The Minecraft access token goes to
+  Mojang only; the Shard session lives in memory (never on disk or in logs, and the log redactor
+  now also scrubs `"session"` values). A 401 triggers one fresh sign-in and a retry. API POSTs are
+  never retried automatically (challenges are single use and a buy spends tokens).
+- **API location from `services.json`** in the meta repository (https only), cached like the other
+  manifests, overridable from Settings → Integrations, `SHARD_SERVICES_URL`, or `SHARD_API_URL` for
+  development. Missing or unreachable means a calm "not available yet" state, never an error. A
+  failed lookup is remembered for a minute so pages do not hammer GitHub.
+- **Error mapping keeps the API's words.** `{ "error": "..." }` becomes the ShardError message, so a
+  toast reads "Bob has not used Shard yet"; statuses map to stable codes (400 `INVALID_INPUT`,
+  401 `AUTH_FAILED`, 404 `NOT_FOUND`, 429 `RATE_LIMITED`, 5xx `SHARD_API_UNAVAILABLE`, others the
+  new `SHARD_API`).
+- **One state call for the UI.** `online:state` returns `unavailable`, `signed-out` (with the public
+  shop), `error` (sign-in failed; shown inline, the page keeps working) or `ready` (me + shop), and
+  never throws for the first three, so pages render a state instead of an error card.
+- **Privacy in the UI matches the API.** Friends show a letter avatar, the name and "In game" or
+  "Offline · last seen …", nothing else (the API shares no skins, servers or positions). The
+  Friends page polls every 30 s only while it is open; the Cosmetics page refreshes the balance
+  every minute.
+- **Admin is hidden unless the API says `admin`.** The sidebar entry appears only for admins and
+  the page re-checks; destructive actions (taking tokens, revoking, removing a shop item) confirm
+  first. Keyboard shortcuts now follow the visible pages (Ctrl/Cmd+1..9).
+- **Development-only switches** (all ignored when `app.isPackaged`): `SHARD_API_DEV_AUTH=1` signs in
+  to a local `wrangler dev` API with `devUuid` instead of Mojang, and
+  `SHARD_DEV_FAKE_ACCOUNT=name:uuid` gives the online features an identity for headless
+  screenshots. The fake identity lives inside the Shard API service only; it is not an account,
+  has no Minecraft token and cannot launch the game.
+- **Honest copy.** The Cosmetics page now says Shard Client shows your cape in-game (client 0.5.0+).

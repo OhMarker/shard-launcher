@@ -2,7 +2,17 @@
 
 Last updated 2026-10-08.
 
-## 0.3.0: built and verified locally 2026-10-08 (not pushed, tagged or released)
+## 0.3.0: released 2026-10-08
+- https://github.com/OhMarker/shard-launcher/releases/tag/v0.3.0. The tag run's Windows job failed
+  on a GitHub upload HTTP 500; `gh workflow run release.yml -f tag=v0.3.0 -f platform=windows`
+  rebuilt it, and the website's portable download is served again.
+- Live: Shard API https://shard-api.laws-pandayt.workers.dev (deployed by the owner with
+  `shard-api/scripts/deploy.ps1` via the Desktop "Put Shard API online.cmd"; safe to rerun), meta
+  `services.json` points at it, meta `cosmetics.json` marks `cape-ohmarker` locked, Shard Client
+  0.6.0 is `latest`. Admin: OhMarkerr (uuid 4a5e875e479a43f1bfc16c6bd326643d, `ADMIN_UUIDS`).
+- Not yet tried with a real Microsoft account against Mojang's join endpoint (none in the sandbox).
+- `../shard-api` is a local git repository only (no GitHub remote yet).
+
 - **Shard online** against the Shard API (`../shard-api`, contract in its API.md): token balance and
   "+10 every 10 min you play" on the Cosmetics page, Buy (with confirm) / "Need N more", ownership
   from the API (the bundled `cape-ohmarker` is now `locked`), equipping a cape goes to the API and

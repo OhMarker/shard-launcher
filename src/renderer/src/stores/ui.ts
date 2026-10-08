@@ -1,8 +1,18 @@
 import { create } from 'zustand'
 
-export type Page = 'home' | 'versions' | 'mods' | 'skins' | 'cosmetics' | 'updates' | 'settings'
+export type Page =
+  | 'home'
+  | 'versions'
+  | 'mods'
+  | 'skins'
+  | 'cosmetics'
+  | 'friends'
+  | 'updates'
+  | 'settings'
+  | 'admin'
 
-export const PAGES: Page[] = ['home', 'versions', 'mods', 'skins', 'cosmetics', 'updates', 'settings']
+/** Sidebar order. Admin is listed only for Shard admins. */
+export const PAGES: Page[] = ['home', 'versions', 'mods', 'skins', 'cosmetics', 'friends', 'updates', 'settings', 'admin']
 
 export function isPage(value: string): value is Page {
   return (PAGES as string[]).includes(value)

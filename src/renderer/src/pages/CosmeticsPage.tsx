@@ -1,16 +1,22 @@
 import { Cloud, CloudOff, Package, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { formatRelative } from '@shared/format'
+import { effectiveOwned } from '@shared/online'
 import { type Cosmetic, type CosmeticsView } from '@shared/types'
 import { useActiveAccount } from '@/hooks/useAccounts'
+import { readyState, useOnlineState, useRefreshOnline } from '@/hooks/useOnline'
 import { useTexture } from '@/hooks/useTexture'
 import { toast } from '@/stores/ui'
 import { Badge, type BadgeTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { PageBody, PageHeader } from '@/components/ui/Misc'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { confirm } from '@/components/ui/confirm'
+import { type BuyOffer } from '@/components/cosmetics/BuyButton'
+import { OnlineNote } from '@/components/online/OnlineNote'
 import { CosmeticDetailDialog } from './cosmetics/CosmeticDetailDialog'
 import { CosmeticPreviewCard, type PreviewState } from './cosmetics/CosmeticPreviewCard'
+import { TokenBalance } from './cosmetics/TokenBalance'
 import { Wardrobe } from './cosmetics/Wardrobe'
 import {
   MAX_EMOTES,
@@ -21,7 +27,12 @@ import {
   isOwned,
   slotOf
 } from './cosmetics/cosmetics-utils'
-import { useCosmeticsMutations, useCosmeticsView } from './cosmetics/useCosmetics'
+import { useBuyCosmetic, useCosmeticsMutations, useCosmeticsView } from './cosmetics/useCosmetics'
+
+const EMPTY_OWNED: readonly string[] = []
+
+/** Tokens arrive while playing; refresh the balance every minute while this page is open. */
+const ONLINE_POLL_MS = 60_000
 
 const SOURCE_META: Record<
   CosmeticsView['source'],
@@ -50,7 +61,11 @@ const SOURCE_META: Record<
 export function CosmeticsPage() {
   const account = useActiveAccount()
   const viewQuery = useCosmeticsView()
+  const onlineQuery = useOnlineState({ pollMs: ONLINE_POLL_MS })
+  const online = readyState(onlineQuery.data)
   const m = useCosmeticsMutations()
+  const buy = useBuyCosmetic()
+  const refreshOnline = useRefreshOnline()
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ id: string; open: boolean } | null>(null)
@@ -62,7 +77,37 @@ export function CosmeticsPage() {
   )
   const equippedMap = view?.equipped.equipped ?? {}
   const emotes = view?.equipped.emotes ?? []
-  const owned = view?.owned ?? []
+  // With the Shard API, the API decides what is owned (nothing from the shop while signed out);
+  // without it the catalogue does.
+  const state = onlineQuery.data
+  const owned = useMemo(() => {
+    if (!view) return EMPTY_OWNED
+    const api =
+      state?.status === 'ready'
+        ? { owned: state.me.owned, shop: state.shop }
+        : state?.status === 'signed-out'
+          ? { owned: [], shop: state.shop }
+          : null
+    return effectiveOwned(view.manifest.cosmetics, view.owned, api)
+  }, [view, state])
+  const prices = useMemo(() => new Map((online?.shop ?? []).map((item) => [item.id, item.price])), [online])
+
+  const offerFor = (c: Cosmetic): BuyOffer | null => {
+    const price = prices.get(c.id)
+    return online && price !== undefined && !owned.includes(c.id) ? { price, tokens: online.me.tokens } : null
+  }
+
+  const startBuy = async (c: Cosmetic): Promise<void> => {
+    const offer = offerFor(c)
+    if (!offer) return
+    const ok = await confirm({
+      title: `Buy ${c.name}?`,
+      message: `It costs ${offer.price} tokens. You will have ${offer.tokens - offer.price} left, and it is yours on every computer you sign in on.`,
+      confirmLabel: `Buy for ${offer.price}`
+    })
+    if (ok) buy.mutate(c)
+  }
+  const buyingId = buy.isPending ? (buy.variables?.id ?? null) : null
 
   // Back of the model: hover beats sticky selection beats whatever is equipped.
   const equippedBack = equippedBackId(equippedMap)
@@ -79,6 +124,10 @@ export function CosmeticsPage() {
 
   const toggleEmote = (c: Cosmetic): void => {
     if (!isOwned(c, owned)) {
+      if (offerFor(c)) {
+        void startBuy(c)
+        return
+      }
       toast({
         kind: 'info',
         title: 'Not unlocked yet',
@@ -104,6 +153,10 @@ export function CosmeticsPage() {
       return
     }
     if (!isOwned(c, owned)) {
+      if (offerFor(c)) {
+        void startBuy(c)
+        return
+      }
       toast({
         kind: 'info',
         title: 'Not unlocked yet',
@@ -137,6 +190,7 @@ export function CosmeticsPage() {
         cosmetic: backItem,
         equipped: isEquipped(backItem),
         owned: isOwned(backItem, owned),
+        offer: offerFor(backItem),
         clearable: hoverId !== null || selectedId !== null
       }
     : null
@@ -148,9 +202,10 @@ export function CosmeticsPage() {
     <PageBody wide>
       <PageHeader
         title="Cosmetics"
-        description="Pick what you wear. The preview shows it on your skin; in-game rendering comes in a later Shard Client update."
+        description="Pick what you wear. The preview shows it on your skin, and Shard Client shows your cape in-game to every Shard player."
         action={
           <>
+            {online && <TokenBalance me={online.me} />}
             {view && source && (
               <Tooltip
                 content={`${source.hint} Updated ${formatRelative(view.manifest.updatedAt)}.`}
@@ -167,13 +222,26 @@ export function CosmeticsPage() {
               variant="secondary"
               leftIcon={<RefreshCw />}
               loading={m.refresh.isPending}
-              onClick={() => m.refresh.mutate()}
+              onClick={() => {
+                m.refresh.mutate()
+                refreshOnline.mutate()
+              }}
             >
               Refresh
             </Button>
           </>
         }
       />
+
+      {onlineQuery.data && onlineQuery.data.status !== 'ready' && (
+        <OnlineNote
+          className="mt-4"
+          state={onlineQuery.data}
+          onRetry={() => refreshOnline.mutate()}
+          retrying={refreshOnline.isPending}
+          signedOutHint="Sign in to earn tokens and buy capes"
+        />
+      )}
 
       <div className="mt-6 grid grid-cols-[400px_minmax(0,1fr)] items-start gap-6">
         <CosmeticPreviewCard
@@ -186,6 +254,8 @@ export function CosmeticsPage() {
           preview={preview}
           pending={pendingId !== null && pendingId === backItem?.id}
           onEquipToggle={() => backItem && equipToggle(backItem)}
+          onBuy={() => backItem && void startBuy(backItem)}
+          buying={backItem !== null && buyingId === backItem.id}
           onClearPreview={() => {
             setHoverId(null)
             setSelectedId(null)
@@ -207,6 +277,10 @@ export function CosmeticsPage() {
           onCardClick={onCardClick}
           onPrimary={equipToggle}
           pendingId={pendingId}
+          owned={owned}
+          offerFor={offerFor}
+          onBuy={(c) => void startBuy(c)}
+          buyingId={buyingId}
         />
       </div>
 
@@ -219,6 +293,9 @@ export function CosmeticsPage() {
         pending={detailCosmetic !== null && pendingId === detailCosmetic.id}
         onClose={() => setDetail((d) => (d ? { ...d, open: false } : null))}
         onEquipToggle={() => detailCosmetic && equipToggle(detailCosmetic)}
+        offer={detailCosmetic ? offerFor(detailCosmetic) : null}
+        onBuy={() => detailCosmetic && void startBuy(detailCosmetic)}
+        buying={detailCosmetic !== null && buyingId === detailCosmetic.id}
       />
     </PageBody>
   )

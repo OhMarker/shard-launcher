@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Switch } from '@/components/ui/Switch'
 import { Tabs, type TabItem } from '@/components/ui/Tabs'
+import { type BuyOffer } from '@/components/cosmetics/BuyButton'
 import { CosmeticCard } from '@/components/cosmetics/CosmeticCard'
 import { ErrorCard } from '@/components/mods/ErrorCard'
 import {
@@ -32,6 +33,11 @@ import {
 
 export interface WardrobeProps {
   view: CosmeticsView | undefined
+  /** Owned ids: the Shard API's answer when signed in, otherwise the catalogue's. */
+  owned: readonly string[]
+  offerFor: (cosmetic: Cosmetic) => BuyOffer | null
+  onBuy: (cosmetic: Cosmetic) => void
+  buyingId: string | null
   loading: boolean
   error: unknown
   onRetry: () => void
@@ -44,7 +50,6 @@ export interface WardrobeProps {
 }
 
 const EMPTY_COSMETICS: readonly Cosmetic[] = []
-const EMPTY_OWNED: readonly string[] = []
 
 function RarityChip({
   rarity,
@@ -109,11 +114,14 @@ export function Wardrobe({
   onHover,
   onCardClick,
   onPrimary,
-  pendingId
+  pendingId,
+  owned,
+  offerFor,
+  onBuy,
+  buyingId
 }: WardrobeProps) {
   const [filters, setFilters] = useState<WardrobeFilters>(DEFAULT_FILTERS)
   const all = view?.manifest.cosmetics ?? EMPTY_COSMETICS
-  const owned = view?.owned ?? EMPTY_OWNED
   const counts = useMemo(() => countByType(all), [all])
   const list = useMemo(() => filterCosmetics(all, filters, owned), [all, filters, owned])
   const equipped = view?.equipped
@@ -234,6 +242,9 @@ export function Wardrobe({
                   onClick={() => onCardClick(c)}
                   onHoverChange={(hovering) => onHover(hovering ? c : null)}
                   onPrimary={() => onPrimary(c)}
+                  offer={offerFor(c)}
+                  onBuy={() => onBuy(c)}
+                  buying={buyingId === c.id}
                 />
               ))}
             </AnimatePresence>

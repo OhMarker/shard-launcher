@@ -14,6 +14,7 @@ import { Button, IconButton } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { BuyButton, type BuyOffer } from '@/components/cosmetics/BuyButton'
 import { TypeIcon } from '@/components/cosmetics/TypeIcon'
 import { TYPE_LABELS } from './cosmetics-utils'
 
@@ -23,6 +24,8 @@ export interface PreviewState {
   cosmetic: Cosmetic
   equipped: boolean
   owned: boolean
+  /** Shop price and balance when the item can be bought (signed in to Shard). */
+  offer: BuyOffer | null
   /** True when the preview came from hover/selection rather than the equipped item. */
   clearable: boolean
 }
@@ -36,6 +39,8 @@ export interface CosmeticPreviewCardProps {
   preview: PreviewState | null
   pending: boolean
   onEquipToggle: () => void
+  onBuy: () => void
+  buying: boolean
   onClearPreview: () => void
   equipped: EquippedCosmetics | null
   byId: ReadonlyMap<string, Cosmetic>
@@ -91,6 +96,8 @@ export function CosmeticPreviewCard({
   preview,
   pending,
   onEquipToggle,
+  onBuy,
+  buying,
   onClearPreview,
   equipped,
   byId,
@@ -154,6 +161,8 @@ export function CosmeticPreviewCard({
                 >
                   {preview.equipped ? 'Unequip' : 'Equip'}
                 </Button>
+              ) : preview.offer ? (
+                <BuyButton size="sm" offer={preview.offer} onBuy={onBuy} loading={buying} />
               ) : (
                 <Tooltip content="Not unlocked yet">
                   <span className="inline-flex">

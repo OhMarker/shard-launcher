@@ -20,6 +20,10 @@ export function useGlobalEvents(): void {
       onEvent('auth:accountsChanged', (accounts) => {
         qc.setQueryData(queryKeys.accounts, accounts)
         void qc.invalidateQueries({ queryKey: ['auth', 'profile'] })
+        // The Shard API session belongs to the active account.
+        void qc.invalidateQueries({ queryKey: queryKeys.online })
+        void qc.invalidateQueries({ queryKey: queryKeys.friends })
+        void qc.invalidateQueries({ queryKey: ['admin'] })
       }),
       onEvent('instances:changed', (instances) => {
         qc.setQueryData(queryKeys.instances, instances)

@@ -18,6 +18,8 @@ import { VersionsPage } from '@/pages/VersionsPage'
 import { ModsPage } from '@/pages/ModsPage'
 import { SkinsPage } from '@/pages/SkinsPage'
 import { CosmeticsPage } from '@/pages/CosmeticsPage'
+import { FriendsPage } from '@/pages/FriendsPage'
+import { AdminPage } from '@/pages/AdminPage'
 import { UpdatesPage } from '@/pages/UpdatesPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { WhatsNewDialog } from '@/pages/updates/WhatsNewDialog'
@@ -28,8 +30,10 @@ const PAGE_COMPONENTS: Record<Page, () => JSX.Element> = {
   mods: ModsPage,
   skins: SkinsPage,
   cosmetics: CosmeticsPage,
+  friends: FriendsPage,
   updates: UpdatesPage,
-  settings: SettingsPage
+  settings: SettingsPage,
+  admin: AdminPage
 }
 
 function Shell() {

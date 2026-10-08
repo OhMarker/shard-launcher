@@ -111,6 +111,13 @@ export function IntegrationsSection() {
         placeholder={URLS.cosmetics}
         onCommit={(cosmetics) => void update({ manifestUrls: { ...urls, cosmetics } })}
       />
+      <UrlOverride
+        label="Shard services"
+        description="Blank uses the official services.json, which tells the launcher where the Shard API (tokens, shop, friends) lives."
+        value={urls.services}
+        placeholder={URLS.services}
+        onCommit={(services) => void update({ manifestUrls: { ...urls, services } })}
+      />
     </SettingsSection>
   )
 }

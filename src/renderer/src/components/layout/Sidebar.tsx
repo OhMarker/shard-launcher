@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Blocks, Download, House, Layers, Settings, Shirt, Sparkles } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { Blocks, Download, House, Layers, Settings, ShieldCheck, Shirt, Sparkles, Users } from 'lucide-react'
+import { useEffect, useMemo, type ReactNode } from 'react'
+import { useIsShardAdmin } from '@/hooks/useOnline'
 import { invoke, queryKeys } from '@/lib/api'
 import { cn } from '@/lib/cn'
-import { PAGES, useUi, type Page } from '@/stores/ui'
+import { useUi, type Page } from '@/stores/ui'
 import { AccountChip } from './AccountChip'
 
 const NAV: Array<{ page: Page; label: string; icon: ReactNode }> = [
@@ -13,8 +14,10 @@ const NAV: Array<{ page: Page; label: string; icon: ReactNode }> = [
   { page: 'mods', label: 'Mods', icon: <Blocks /> },
   { page: 'skins', label: 'Skins', icon: <Shirt /> },
   { page: 'cosmetics', label: 'Cosmetics', icon: <Sparkles /> },
+  { page: 'friends', label: 'Friends', icon: <Users /> },
   { page: 'updates', label: 'Updates', icon: <Download /> },
-  { page: 'settings', label: 'Settings', icon: <Settings /> }
+  { page: 'settings', label: 'Settings', icon: <Settings /> },
+  { page: 'admin', label: 'Admin', icon: <ShieldCheck /> }
 ]
 
 export function Sidebar() {
@@ -26,25 +29,29 @@ export function Sidebar() {
     staleTime: 60_000
   })
   const updateReady = updateState?.status === 'available' || updateState?.status === 'downloaded'
+  // Admin appears only for Shard admins (the API says so); everyone else never sees it.
+  const isAdmin = useIsShardAdmin()
+  const nav = useMemo(() => (isAdmin ? NAV : NAV.filter((item) => item.page !== 'admin')), [isAdmin])
 
-  // Ctrl/Cmd + 1..7 jumps between pages.
+  // Ctrl/Cmd + 1..9 jumps between the visible pages.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return
       const n = Number(e.key)
-      if (n >= 1 && n <= PAGES.length) {
+      const target = n >= 1 && n <= 9 ? nav[n - 1] : undefined
+      if (target) {
         e.preventDefault()
-        navigate(PAGES[n - 1]!)
+        navigate(target.page)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [navigate])
+  }, [navigate, nav])
 
   return (
     <aside className="relative z-20 flex w-[216px] shrink-0 flex-col px-3 pb-3 pt-1">
       <nav aria-label="Main" className="flex flex-col gap-0.5">
-        {NAV.map((item, i) => {
+        {nav.map((item, i) => {
           const active = page === item.page
           return (
             <button

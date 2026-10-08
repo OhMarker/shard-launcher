@@ -150,8 +150,9 @@ describe('cosmetics-utils: types and slots', () => {
 })
 
 describe('cosmetics-utils: ownership and emotes', () => {
-  it('treats free cosmetics as owned and locked ones as owned only when listed', () => {
-    expect(u.isOwned(all[0]!, [])).toBe(true)
+  it('trusts the owned list (main folds free items in; the Shard API decides when signed in)', () => {
+    expect(u.isOwned(all[0]!, [])).toBe(false)
+    expect(u.isOwned(all[0]!, [all[0]!.id])).toBe(true)
     expect(u.isOwned(all[2]!, [])).toBe(false)
     expect(u.isOwned(all[2]!, ['phoenix-wings'])).toBe(true)
   })
@@ -189,7 +190,7 @@ describe('cosmetics-utils: wardrobe filters', () => {
     ).toEqual(['phoenix-wings', 'top-hat'])
     expect(
       u
-        .filterCosmetics(all, { ...u.DEFAULT_FILTERS, ownedOnly: true }, ['top-hat'])
+        .filterCosmetics(all, { ...u.DEFAULT_FILTERS, ownedOnly: true }, ['crystal-cape', 'top-hat', 'plain-cape', 'wave'])
         .map((c) => c.id)
     ).toEqual(['crystal-cape', 'top-hat', 'plain-cape', 'wave'])
     expect(

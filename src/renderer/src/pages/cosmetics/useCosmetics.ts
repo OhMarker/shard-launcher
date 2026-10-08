@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type CosmeticSlot, type CosmeticsView, type EquippedCosmetics } from '@shared/types'
+import {
+  type Cosmetic,
+  type CosmeticSlot,
+  type CosmeticsView,
+  type EquippedCosmetics,
+  type OnlineState
+} from '@shared/types'
 import { errorMessage, errorTitle, invoke, queryKeys } from '@/lib/api'
 import { toast } from '@/stores/ui'
 import { toggleEmoteList } from './cosmetics-utils'
@@ -67,7 +73,11 @@ export function useCosmeticsMutations() {
         return { ...eq, equipped: vars.id ? { ...rest, [vars.type]: vars.id } : rest }
       }),
     onError: (err, _vars, prev) => rollback(err, prev),
-    onSuccess: applyEquipped
+    onSuccess: (equipped, vars) => {
+      applyEquipped(equipped)
+      // Capes are mirrored to the Shard API; refresh what it says the player wears.
+      if (vars.type === 'cape') void qc.invalidateQueries({ queryKey: queryKeys.online })
+    }
   })
 
   const toggleEmote = useMutation({
@@ -81,3 +91,23 @@ export function useCosmeticsMutations() {
 }
 
 export type CosmeticsMutations = ReturnType<typeof useCosmeticsMutations>
+
+/** Buys a cosmetic with Shard tokens. The caller confirms first. */
+export function useBuyCosmetic() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (cosmetic: Cosmetic) => invoke('online:buy', { id: cosmetic.id }),
+    onSuccess: (me, cosmetic) => {
+      qc.setQueryData<OnlineState>(queryKeys.online, (prev) => (prev?.status === 'ready' ? { ...prev, me } : prev))
+      toast({
+        kind: 'success',
+        title: `${cosmetic.name} is yours`,
+        message: `${me.tokens} tokens left. Equip it whenever you like.`
+      })
+    },
+    onError: (err) => {
+      toast({ kind: 'error', title: 'Could not buy it', message: errorMessage(err) })
+      void qc.invalidateQueries({ queryKey: queryKeys.online })
+    }
+  })
+}

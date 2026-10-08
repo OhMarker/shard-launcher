@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
-import { Check, Lock, Plus, Sparkles } from 'lucide-react'
+import { Check, Coins, Lock, Plus, Sparkles } from 'lucide-react'
 import { type Cosmetic } from '@shared/types'
 import { cn } from '@/lib/cn'
 import { RARITY_PALETTE, TYPE_LABELS } from '@/pages/cosmetics/cosmetics-utils'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { BuyButton, type BuyOffer } from './BuyButton'
 import { CosmeticTile } from './CosmeticTile'
 import { RarityBadge } from './RarityBadge'
 import { TypeIcon } from './TypeIcon'
@@ -23,6 +24,10 @@ export interface CosmeticCardProps {
   onHoverChange: (hovering: boolean) => void
   /** Equip/unequip, or add/remove from the emote wheel. */
   onPrimary: () => void
+  /** Shop price and balance when the item is for sale and the player is signed in to Shard. */
+  offer: BuyOffer | null
+  onBuy: () => void
+  buying: boolean
 }
 
 export function CosmeticCard({
@@ -34,7 +39,10 @@ export function CosmeticCard({
   pending,
   onClick,
   onHoverChange,
-  onPrimary
+  onPrimary,
+  offer,
+  onBuy,
+  buying
 }: CosmeticCardProps) {
   const locked = !owned
   const isEmote = cosmetic.type === 'emote'
@@ -66,7 +74,8 @@ export function CosmeticCard({
             : selected
               ? 'border-line-strong'
               : 'hover:border-line-strong',
-          locked && 'opacity-70'
+          // For sale: full colour so the Buy button reads as an offer, not a disabled tile.
+          locked && !offer && 'opacity-70'
         )}
       >
         <button
@@ -79,7 +88,7 @@ export function CosmeticCard({
           <CosmeticTile
             cosmetic={cosmetic}
             previewUrl={previewUrl}
-            className={cn('aspect-[4/5] w-full', locked && 'grayscale-[0.5]')}
+            className={cn('aspect-[4/5] w-full', locked && !offer && 'grayscale-[0.5]')}
           />
           <div className="absolute left-2 top-2">
             <RarityBadge rarity={cosmetic.rarity} />
@@ -125,10 +134,17 @@ export function CosmeticCard({
                 Owned
               </Badge>
             )}
+            {locked && offer && (
+              <Badge size="sm" tone="warning" icon={<Coins />}>
+                {offer.price}
+              </Badge>
+            )}
           </div>
           <div className="truncate text-[11px] text-fg-subtle">by {cosmetic.author}</div>
           <div className="mt-auto pt-1">
-            {locked ? (
+            {locked && offer ? (
+              <BuyButton offer={offer} onBuy={onBuy} loading={buying} fullWidth />
+            ) : locked ? (
               <Tooltip content="Not unlocked yet">
                 <span className="inline-flex w-full">
                   <Button size="xs" variant="outline" fullWidth disabled leftIcon={<Lock />}>

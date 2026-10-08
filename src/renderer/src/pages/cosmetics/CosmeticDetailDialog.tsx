@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { BuyButton, type BuyOffer } from '@/components/cosmetics/BuyButton'
 import { CosmeticTile } from '@/components/cosmetics/CosmeticTile'
 import { RarityBadge } from '@/components/cosmetics/RarityBadge'
 import { TypeIcon } from '@/components/cosmetics/TypeIcon'
@@ -19,6 +20,9 @@ export interface CosmeticDetailDialogProps {
   pending: boolean
   onClose: () => void
   onEquipToggle: () => void
+  offer: BuyOffer | null
+  onBuy: () => void
+  buying: boolean
 }
 
 /** 2D preview for cosmetics the 3D viewer cannot show (hats, bandanas, backbling). */
@@ -30,7 +34,10 @@ export function CosmeticDetailDialog({
   equipped,
   pending,
   onClose,
-  onEquipToggle
+  onEquipToggle,
+  offer,
+  onBuy,
+  buying
 }: CosmeticDetailDialogProps) {
   return (
     <Dialog
@@ -55,6 +62,8 @@ export function CosmeticDetailDialog({
               >
                 {equipped ? 'Unequip' : 'Equip'}
               </Button>
+            ) : offer ? (
+              <BuyButton size="md" offer={offer} onBuy={onBuy} loading={buying} />
             ) : (
               <Tooltip content="Not unlocked yet">
                 <span className="inline-flex">
@@ -102,8 +111,8 @@ export function CosmeticDetailDialog({
           )}
           <div className="flex items-start gap-2.5 rounded-[12px] border border-line bg-white/4 p-3 text-[13px] text-fg-muted">
             <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-            Renders in-game once the Shard client ships. The 3D preview here shows capes, cloaks and
-            wings only.
+            The 3D preview here shows capes, cloaks and wings only. Shard Client draws equipped
+            capes in-game.
           </div>
         </div>
       )}

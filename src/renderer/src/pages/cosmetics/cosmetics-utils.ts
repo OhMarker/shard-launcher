@@ -111,8 +111,12 @@ export function equippedBackId(equipped: EquippedMap): string | null {
 // Ownership and the emote wheel
 // ---------------------------------------------------------------------------
 
+/**
+ * `owned` is authoritative: the main process folds free catalogue items into it, and with the
+ * Shard API the page replaces it with the API's answer (see effectiveOwned in @shared/online).
+ */
 export function isOwned(cosmetic: Cosmetic, owned: readonly string[]): boolean {
-  return cosmetic.availability === 'free' || owned.includes(cosmetic.id)
+  return owned.includes(cosmetic.id)
 }
 
 export const MAX_EMOTES = 8

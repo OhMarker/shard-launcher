@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { EQUIPPED_FILE } from '@shared/constants'
 import { ShardError } from '@shared/errors'
+import { effectiveOwned } from '@shared/online'
 import { OwnedCosmeticsSchema } from '@shared/schemas/cosmetics-owned'
 import { CosmeticsManifestSchema, EquippedCosmeticsSchema } from '@shared/schemas/shard'
 import { type Cosmetic, type CosmeticsManifest, type CosmeticsView, type EquippedCosmetics } from '@shared/types'
@@ -148,7 +149,16 @@ export function createCosmeticsService(ctx: AppContext): CosmeticsService {
     equip(slot, id) {
       return serialize(async () => {
         const { manifest } = await getManifest(false)
-        const [owned, current] = await Promise.all([loadOwnedSet(manifest), readEquipped()])
+        const [localOwned, current] = await Promise.all([readOwned(), readEquipped()])
+        if (slot !== 'cape') {
+          return writeEquipped(applyEquip(current, manifest, new Set(ownedIds(manifest, localOwned)), slot, id, now()))
+        }
+        // Capes are what the Shard API knows about. Validate the slot locally first (ownership
+        // aside), then mirror the change to the API, which checks ownership and shows the cape
+        // to every Shard player. equipped.json is still written: the game reads it.
+        applyEquip(current, manifest, new Set(manifest.cosmetics.map((c) => c.id)), slot, id, now())
+        const online = await ctx.services.shardApi.syncCape(id)
+        const owned = new Set(effectiveOwned(manifest.cosmetics, ownedIds(manifest, localOwned), online))
         return writeEquipped(applyEquip(current, manifest, owned, slot, id, now()))
       })
     },

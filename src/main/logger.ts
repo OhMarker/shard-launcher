@@ -9,7 +9,7 @@ const MAX_ARCHIVES = 5
 const REDACTIONS: Array<[RegExp, string]> = [
   [/\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, '[jwt]'],
   [/(access_token|refresh_token|id_token|client_secret|code_verifier|device_code)=([^&\s"']+)/gi, '$1=[redacted]'],
-  [/("(?:access_token|refresh_token|id_token|Token|RpsTicket|identityToken|accessToken|refreshToken)"\s*:\s*")[^"]+(")/g, '$1[redacted]$2'],
+  [/("(?:access_token|refresh_token|id_token|Token|RpsTicket|identityToken|accessToken|refreshToken|session)"\s*:\s*")[^"]+(")/g, '$1[redacted]$2'],
   [/(Authorization:\s*\w+\s+)\S+/gi, '$1[redacted]'],
   [/(XBL3\.0 x=)[^;\s]+;[^\s"']+/g, '$1[redacted]']
 ]

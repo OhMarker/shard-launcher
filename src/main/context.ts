@@ -7,6 +7,11 @@
 import { type BrowserWindow } from 'electron'
 import type {
   AccountSummary,
+  AdminPlayer,
+  FriendsView,
+  OnlineState,
+  ShardMe,
+  ShopItem,
   BundledModsManifest,
   CopyModsResult,
   CosmeticSlot,
@@ -221,6 +226,35 @@ export interface CosmeticsService {
   prepareForLaunch(accountId: string | null): Promise<void>
 }
 
+/**
+ * The Shard API (tokens, shop, friends, admin). Signs in per Microsoft account with Mojang's
+ * server-join check; the Minecraft access token is only ever sent to Mojang.
+ */
+export interface ShardApiService {
+  /** Never throws for "no API" or "no account": those are states the UI shows. */
+  state(opts?: { refresh?: boolean }): Promise<OnlineState>
+  shop(): Promise<ShopItem[]>
+  me(): Promise<ShardMe>
+  buy(id: string): Promise<ShardMe>
+  equip(capeId: string | null): Promise<ShardMe>
+  /**
+   * Mirrors a local cape change to the API when signed in. Returns the API's ownership for the
+   * equip check (nothing from the shop when signed out), or null when the API is unavailable
+   * (local catalogue rules apply).
+   */
+  syncCape(capeId: string | null): Promise<{ owned: string[]; shop: ShopItem[] } | null>
+  friends(): Promise<FriendsView>
+  requestFriend(name: string): Promise<FriendsView>
+  acceptFriend(uuid: string): Promise<FriendsView>
+  declineFriend(uuid: string): Promise<FriendsView>
+  removeFriend(uuid: string): Promise<FriendsView>
+  adminPlayers(q: string): Promise<AdminPlayer[]>
+  adminTokens(player: string, amount: number): Promise<AdminPlayer>
+  adminGrant(player: string, id: string): Promise<AdminPlayer>
+  adminRevoke(player: string, id: string): Promise<AdminPlayer>
+  adminPrice(id: string, price: number | null): Promise<ShopItem[]>
+}
+
 export interface SkinService {
   library(): Promise<SavedSkin[]>
   addFromFile(path: string, name?: string): Promise<SavedSkin>
@@ -277,6 +311,7 @@ export interface Services {
   shard: ShardClientService
   sharedConfig: SharedConfigService
   cosmetics: CosmeticsService
+  shardApi: ShardApiService
   skins: SkinService
   updates: UpdateService
   news: NewsService
@@ -298,6 +333,6 @@ export interface AppContext {
   /** Resolved MSA client id or null when sign-in is not configured. */
   msaClientId(): string | null
   msaRedirectUri(): string
-  manifestUrls(): { shard: string; bundledMods: string; cosmetics: string }
+  manifestUrls(): { shard: string; bundledMods: string; cosmetics: string; services: string }
   modrinthUserAgent(): string
 }

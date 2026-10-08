@@ -43,6 +43,7 @@ export interface Settings {
     shard: string | null
     bundledMods: string | null
     cosmetics: string | null
+    services: string | null
   }
   viewer: {
     animation: ModelAnimation

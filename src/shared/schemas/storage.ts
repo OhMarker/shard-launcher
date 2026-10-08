@@ -43,9 +43,10 @@ export const SettingsSchema = z.object({
     .object({
       shard: z.string().nullable().default(null),
       bundledMods: z.string().nullable().default(null),
-      cosmetics: z.string().nullable().default(null)
+      cosmetics: z.string().nullable().default(null),
+      services: z.string().nullable().default(null)
     })
-    .default({ shard: null, bundledMods: null, cosmetics: null }),
+    .default({ shard: null, bundledMods: null, cosmetics: null, services: null }),
   viewer: z
     .object({
       animation: z.enum(['idle', 'walk', 'run']).default('idle'),

@@ -109,7 +109,9 @@ async function bootstrap(): Promise<void> {
           import.meta.env.SHARD_BUNDLED_MODS_URL ??
           URLS.bundledMods,
         cosmetics:
-          s.cosmetics ?? process.env.SHARD_COSMETICS_URL ?? import.meta.env.SHARD_COSMETICS_URL ?? URLS.cosmetics
+          s.cosmetics ?? process.env.SHARD_COSMETICS_URL ?? import.meta.env.SHARD_COSMETICS_URL ?? URLS.cosmetics,
+        services:
+          s.services ?? process.env.SHARD_SERVICES_URL ?? import.meta.env.SHARD_SERVICES_URL ?? URLS.services
       }
     },
     modrinthUserAgent: () => {

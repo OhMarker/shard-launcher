@@ -226,7 +226,9 @@ describe('bundled cosmetics manifest', () => {
         }
       }
     }
-    expect(bundled.cosmetics.filter((c) => c.availability === 'free').length).toBeGreaterThan(0)
+    // The OhMarker cape is sold for tokens by the Shard API (0.3.0), so the bundled copy is locked;
+    // with the API the launcher asks it who owns what, without it the cape is not owned.
+    expect(bundled.cosmetics.find((c) => c.id === 'cape-ohmarker')?.availability).toBe('locked')
   })
 
   it('rejects non-PNG buffers', () => {

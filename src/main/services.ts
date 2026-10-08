@@ -24,6 +24,7 @@ export async function createServices(ctx: AppContext): Promise<ServiceBundle> {
   const { createShardClientService, registerShardIpc } = await import('./shard/client')
   const { createSharedConfigService } = await import('./shard/shared-config')
   const { createCosmeticsService, registerCosmeticsIpc } = await import('./cosmetics/cosmetics')
+  const { createShardApiService, registerShardApiIpc } = await import('./shard-api/shard-api')
   const { createSkinService, registerSkinIpc } = await import('./skins/skins')
   const { createUpdateService, registerUpdateIpc } = await import('./updates/updates')
   const { createNewsService, registerNewsIpc } = await import('./updates/news')
@@ -40,6 +41,7 @@ export async function createServices(ctx: AppContext): Promise<ServiceBundle> {
     shard: createShardClientService(ctx),
     sharedConfig: createSharedConfigService(ctx),
     cosmetics: createCosmeticsService(ctx),
+    shardApi: createShardApiService(ctx),
     skins: createSkinService(ctx),
     updates: createUpdateService(ctx),
     news: createNewsService(ctx),
@@ -58,6 +60,7 @@ export async function createServices(ctx: AppContext): Promise<ServiceBundle> {
       registerModIpc(ctx)
       registerShardIpc(ctx)
       registerCosmeticsIpc(ctx)
+      registerShardApiIpc(ctx)
       registerSkinIpc(ctx)
       registerUpdateIpc(ctx)
       registerNewsIpc(ctx)

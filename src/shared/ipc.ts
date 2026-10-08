@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import type {
   AccountSummary,
+  AdminPlayer,
+  FriendsView,
+  OnlineState,
+  ShardMe,
+  ShopItem,
   CopyModsResult,
   CosmeticsView,
   CrashReport,
@@ -56,6 +61,12 @@ const httpUrl = z
   .string()
   .url()
   .refine((u) => /^https?:\/\//i.test(u), 'Only http(s) URLs are allowed')
+/** Same rules as the Shard API: Minecraft names and cosmetic ids. */
+const minecraftName = z.string().regex(/^[A-Za-z0-9_]{1,16}$/, 'Type a Minecraft name')
+const playerUuid = z.object({ uuid: z.string().regex(/^[0-9a-fA-F-]{32,36}$/) })
+const cosmeticId = z.string().regex(/^[A-Za-z0-9._-]{1,64}$/)
+/** An admin target: a Minecraft name or a uuid. */
+const adminPlayer = z.string().min(1).max(36)
 
 export const ipcInputSchemas = {
   // app
@@ -224,6 +235,23 @@ export const ipcInputSchemas = {
   }),
   'cosmetics:toggleEmote': z.object({ id: z.string().min(1) }),
 
+  // Shard API: tokens, shop, friends, admin (main process talks to the API; see shard-api/)
+  'online:state': z.object({ refresh: z.boolean().optional() }),
+  'online:buy': z.object({ id: cosmeticId }),
+  'friends:list': none,
+  'friends:request': z.object({ name: minecraftName }),
+  'friends:accept': playerUuid,
+  'friends:decline': playerUuid,
+  'friends:remove': playerUuid,
+  'admin:players': z.object({ q: z.string().max(16).default('') }),
+  'admin:tokens': z.object({
+    player: adminPlayer,
+    amount: z.number().int().min(-1_000_000).max(1_000_000)
+  }),
+  'admin:grant': z.object({ player: adminPlayer, id: cosmeticId }),
+  'admin:revoke': z.object({ player: adminPlayer, id: cosmeticId }),
+  'admin:price': z.object({ id: cosmeticId, price: z.number().int().min(0).max(1_000_000).nullable() }),
+
   // shard client
   'shard:manifest': z.object({ refresh: z.boolean().optional() }),
   'shard:buildFor': z.object({ minecraftVersion: z.string().min(1) }),
@@ -340,6 +368,19 @@ export interface IpcOutputs {
   'cosmetics:list': CosmeticsView
   'cosmetics:equip': EquippedCosmetics
   'cosmetics:toggleEmote': EquippedCosmetics
+
+  'online:state': OnlineState
+  'online:buy': ShardMe
+  'friends:list': FriendsView
+  'friends:request': FriendsView
+  'friends:accept': FriendsView
+  'friends:decline': FriendsView
+  'friends:remove': FriendsView
+  'admin:players': AdminPlayer[]
+  'admin:tokens': AdminPlayer
+  'admin:grant': AdminPlayer
+  'admin:revoke': AdminPlayer
+  'admin:price': ShopItem[]
 
   'shard:manifest': ShardManifestView
   'shard:buildFor': ShardBuild | null

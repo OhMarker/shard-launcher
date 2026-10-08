@@ -38,6 +38,8 @@ export type ShardErrorCode =
   | 'SKIN_INVALID'
   | 'MANIFEST_INVALID'
   | 'UPDATE_FAILED'
+  | 'SHARD_API_UNAVAILABLE'
+  | 'SHARD_API'
 
 export interface SerializedError {
   __shardError: true
@@ -172,5 +174,7 @@ export const ERROR_TITLES: Record<ShardErrorCode, string> = {
   MOD_NO_COMPATIBLE_VERSION: 'No compatible version of this mod exists yet',
   SKIN_INVALID: 'That is not a valid Minecraft skin',
   MANIFEST_INVALID: 'A remote manifest was malformed',
-  UPDATE_FAILED: 'Update failed'
+  UPDATE_FAILED: 'Update failed',
+  SHARD_API_UNAVAILABLE: 'Shard online features are not available yet',
+  SHARD_API: 'Shard could not do that'
 }

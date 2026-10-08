@@ -49,6 +49,9 @@ export const URLS = {
   shardManifest: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/shard-manifest.json`,
   bundledMods: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/bundled-mods.json`,
   cosmetics: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/cosmetics.json`,
+  /** `{ "api": "https://..." }`: where the Shard API lives, so it can move without a launcher release. */
+  services: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/services.json`,
+  mojangJoin: 'https://sessionserver.mojang.com/session/minecraft/join',
   minecraftProfileHelp: 'https://www.minecraft.net/msaprofile/mygames/editprofile',
   buyMinecraft: 'https://www.minecraft.net/store/minecraft-java-bedrock-edition-pc',
   xboxFamily: 'https://account.microsoft.com/family'

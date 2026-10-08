@@ -54,13 +54,27 @@ export class CosmeticAssets {
     return pending
   }
 
-  /** Makes sure a remote asset is present in the local cache so the game can read it offline. */
+  /**
+   * Makes sure the asset is in the local cache, where the game reads it (CONTRACT.md section 4).
+   * Remote assets are downloaded; bundled ones are copied out of the launcher's resources, which
+   * the game cannot see, so the bundled catalogue fallback still dresses the player in-game.
+   */
   async ensureLocal(cosmetic: Cosmetic, kind: AssetKind): Promise<void> {
     const url = sourceUrl(cosmetic, kind)
     if (url === null) return
     const resolved = resolveAssetUrl(url)
-    if (resolved.kind === 'bundled') return
     const dest = this.cachePath(cosmetic, kind)
+    if (resolved.kind === 'bundled') {
+      const png = this.validate(
+        cosmetic,
+        kind,
+        await readFile(join(this.ctx.resourcesDir, resolved.relativePath)),
+        url
+      )
+      const current = (await exists(dest)) ? await readFile(dest) : null
+      if (!current || !current.equals(png)) await writeBufferAtomic(dest, png)
+      return
+    }
     if (await exists(dest)) return
     await this.fetchRemote(cosmetic, kind, resolved.url, dest)
   }
@@ -80,7 +94,12 @@ export class CosmeticAssets {
     return this.fetchRemote(cosmetic, kind, resolved.url, dest)
   }
 
-  private async fetchRemote(cosmetic: Cosmetic, kind: AssetKind, url: string, dest: string): Promise<Buffer> {
+  private async fetchRemote(
+    cosmetic: Cosmetic,
+    kind: AssetKind,
+    url: string,
+    dest: string
+  ): Promise<Buffer> {
     const png = this.validate(cosmetic, kind, await downloadToBuffer(url), url)
     await writeBufferAtomic(dest, png)
     log.debug(`Cached ${kind} for ${cosmetic.id} from ${url}`)
@@ -92,8 +111,14 @@ export class CosmeticAssets {
     if (!size) {
       throw new ShardError('MANIFEST_INVALID', `${cosmetic.name} ${kind} at ${url} is not a PNG`)
     }
-    if (kind === 'texture' && CAPE_LAYOUT_TYPES.has(cosmetic.type) && size.width !== size.height * 2) {
-      log.warn(`${cosmetic.id} texture is ${size.width}x${size.height}; capes use a 2:1 layout such as 64x32`)
+    if (
+      kind === 'texture' &&
+      CAPE_LAYOUT_TYPES.has(cosmetic.type) &&
+      size.width !== size.height * 2
+    ) {
+      log.warn(
+        `${cosmetic.id} texture is ${size.width}x${size.height}; capes use a 2:1 layout such as 64x32`
+      )
     }
     return png
   }

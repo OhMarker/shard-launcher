@@ -123,8 +123,8 @@ usual. Users can turn the layer off per instance or globally.
 
 ## 3. `cosmetics.json`
 
-The wardrobe catalogue. A sample with 15 placeholder cosmetics ships in
-`resources/cosmetics/cosmetics.json` and is used when the hosted copy is unavailable.
+The wardrobe catalogue. A copy ships in `resources/cosmetics/cosmetics.json` (since 0.2.0 only
+the OhMarker cape) and is used when the hosted copy is unavailable.
 
 ```json
 {
@@ -154,7 +154,7 @@ The wardrobe catalogue. A sample with 15 placeholder cosmetics ships in
 | `type` | enum | `cape`, `cloak`, `hat`, `wings`, `bandana`, `backbling`, `emote` |
 | `name` | string | Display name. |
 | `rarity` | enum | `common`, `rare`, `epic`, `legendary`, `mythic` |
-| `textureUrl` | string | `https://…` or `bundled://cosmetics/textures/<file>.png` (ships inside the launcher). Capes, cloaks and wings use the vanilla **64×32 cape layout** so the launcher can preview them with skinview3d (wings preview as elytra). Other types are free-form; the client defines their model. |
+| `textureUrl` | string | `https://…` or `bundled://cosmetics/textures/<file>.png` (ships inside the launcher). Capes, cloaks and wings use the vanilla **64×32 cape layout** (or a whole multiple of it, such as 4096×2048 for a high-resolution cape) so the launcher can preview them with skinview3d (wings preview as elytra). Other types are free-form; the client defines their model. |
 | `previewUrl` | string or null | Optional 2D card image (256×256 recommended). |
 | `animated` | boolean | Informational badge; the client decides how to animate. |
 | `author` | string | Credit. |
@@ -195,7 +195,9 @@ Written by the launcher whenever the wardrobe changes and again right before eac
 
 The client must tolerate unknown ids (the catalogue may have changed) and treat them as unequipped.
 The texture for every equipped cape/cloak/wings item is guaranteed to exist at
-`<data>/cosmetics/textures/<id>.png` after launch preparation.
+`<data>/cosmetics/textures/<id>.png` after launch preparation (downloaded for remote textures,
+copied out of the launcher's resources for bundled ones since 0.2.1). Shard Client 0.5.0+ draws
+the equipped cape on the local player.
 
 ---
 

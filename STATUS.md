@@ -1,6 +1,6 @@
 # Status (handoff for a new session)
 
-Last updated 2026-10-07.
+Last updated 2026-10-08.
 
 ## Shard Launcher (this repo)
 - Complete and verified: 264 unit tests, lint and typecheck clean, headless renders of every page,
@@ -33,23 +33,28 @@ Last updated 2026-10-07.
 - `.env` holds `MSA_CLIENT_ID=335a9f92-08ac-4f4a-9f9c-d0a00d4fb4dc` (Azure app "Shard Launcher",
   tenant bdc55f7d-dddc-4492-99f8-65509b6005fd, personal accounts, redirect http://localhost/shard-auth,
   public client flows on). The id is compiled into the builds above.
-- Sign-in currently fails at the last step with "Invalid app registration": Mojang has not yet
-  approved the client id. The owner submitted the approval form (https://aka.ms/mce-reviewappid)
-  on 2026-10-06. No approval email had arrived in the owner's Gmail as of 2026-10-07. Nothing to
-  change; it starts working when Mojang's email arrives.
-- The hosted `meta` repository is prepared in ../meta (committed locally, not on GitHub yet); the
-  launcher falls back correctly until it exists (Client pending, shipped mod set, bundled cosmetics).
+- Microsoft sign-in: the owner submitted the Mojang approval form (https://aka.ms/mce-reviewappid)
+  on 2026-10-06 and reported on 2026-10-07 that Mojang approved the client id. Sign-in has not
+  been re-tested end to end since then. If it still fails with "Invalid app registration",
+  suspect approval propagation first, not the code; nothing in the launcher needs to change.
+- The hosted `meta` repository is live at https://github.com/OhMarker/meta. The launcher reads
+  `https://raw.githubusercontent.com/OhMarker/meta/main/shard-manifest.json`, which lists
+  Shard Client 0.4.0 as `latest` (plus 0.3.0 and 0.2.0). A new client version needs only a meta
+  push, not a launcher release.
 
 ## Shard Client (../shard-client)
-- First release built and verified in-game for Minecraft 1.21.11; committed locally, not pushed
-  (see ../shard-client/STATUS.md).
+- **0.4.0 is published (2026-10-08):** https://github.com/OhMarker/shard-client/releases/tag/v0.4.0,
+  meta `latest` 0.4.0. Every Shard 1.21.11 instance installs it on the next launch. It is the UI
+  overhaul: new menu, sharp text, Lucide icons, HUD editor, fight modules, Low Fire, Crosshair
+  editor, Shield, GUI Scales, borderless fullscreen and Quick setup (../shard-client/CHANGELOG.md).
+- Earlier releases 0.2.0 and 0.3.0 are on the same releases page. Build, verification and
+  publish steps: ../shard-client/STATUS.md.
 
-## Owner-only steps still open (Claude's sandbox cannot create public repos)
-1. Publish the client and its release: commands in ../shard-client/STATUS.md.
-2. Publish ../meta: command in ../meta/STATUS.md. Until then every Shard instance stays
-   "Client pending" (Fabric + Shard Core only).
-
-Done on 2026-10-07 by the owner: `MSA_CLIENT_ID` secret, tag `v0.1.0`, GitHub Pages enabled.
+## Owner-only steps
+None open. Done by the owner: `MSA_CLIENT_ID` secret, tag `v0.1.0`, GitHub Pages enabled
+(2026-10-07); creating the shard-client and meta repositories and their first releases
+(2026-10-08). Creating releases from Claude's sandbox worked for client v0.4.0; creating public
+repositories and writing repo secrets were refused earlier, so those stay with the owner.
 
 ## Releasing the next launcher version
 1. Bump `version` in package.json, commit, `git tag v<version> && git push origin main v<version>`.

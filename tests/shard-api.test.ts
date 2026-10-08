@@ -1,3 +1,4 @@
+import { createPublicKey, generateKeyPairSync, verify as verifySignature } from 'node:crypto'
 import { mkdtempSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -88,10 +89,26 @@ function stubFetch(routes: Record<string, (call: Call) => Response>): Call[] {
   return calls
 }
 
+// A stand-in for Mojang's /player/certificates answer, with a real key pair.
+const keys = generateKeyPairSync('rsa', { modulusLength: 2048 })
+const PRIVATE_DER = keys.privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64')
+const pem = (label: string, b64: string): string =>
+  [`-----BEGIN ${label}-----`, ...(b64.match(/.{1,64}/g) ?? []), `-----END ${label}-----`].join('\n')
+const CERT = {
+  keyPair: {
+    privateKey: pem('RSA PRIVATE KEY', PRIVATE_DER),
+    publicKey: pem('RSA PUBLIC KEY', keys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64'))
+  },
+  publicKeySignature: 'v1-unused',
+  publicKeySignatureV2: 'bW9qYW5nLXNpZ25hdHVyZQ==',
+  expiresAt: '2099-01-01T00:00:00.000Z',
+  refreshedAfter: '2098-12-31T00:00:00.000Z'
+}
+
 const baseRoutes = (): Record<string, (call: Call) => Response> => ({
   [`GET ${SERVICES}`]: () => json({ api: API }),
   [`POST ${API}/v1/auth/challenge`]: () => json({ serverId: SERVER_ID }),
-  ['POST https://sessionserver.mojang.com/session/minecraft/join']: () => new Response(null, { status: 204 }),
+  ['POST https://api.minecraftservices.com/player/certificates']: () => json(CERT),
   [`POST ${API}/v1/auth/verify`]: () => json({ session: 'shard-session-1', me }),
   [`GET ${API}/v1/me`]: () => json(me),
   [`GET ${API}/v1/shop`]: () => json({ items: [{ id: 'cape-ohmarker', price: 1000 }] })
@@ -103,12 +120,19 @@ describe('Shard API service', () => {
     const state = await createShardApiService(context()).state()
     expect(state).toEqual({ status: 'ready', me, shop: [{ id: 'cape-ohmarker', price: 1000 }] })
 
-    const join = calls.find((c) => c.url.includes('sessionserver.mojang.com'))
-    expect(JSON.parse(join?.body ?? '{}')).toEqual({ accessToken: ACCESS_TOKEN, selectedProfile: UUID, serverId: SERVER_ID })
+    const cert = calls.find((c) => c.url.includes('api.minecraftservices.com/player/certificates'))
+    expect(cert?.headers.Authorization).toBe(`Bearer ${ACCESS_TOKEN}`)
     const verify = calls.find((c) => c.url.endsWith('/v1/auth/verify'))
-    expect(JSON.parse(verify?.body ?? '{}')).toEqual({ username: 'OhMarkerr', serverId: SERVER_ID })
-    for (const c of calls.filter((x) => !x.url.includes('sessionserver.mojang.com'))) {
+    const body = JSON.parse(verify?.body ?? '{}')
+    expect(body).toMatchObject({ username: 'OhMarkerr', serverId: SERVER_ID })
+    expect(body.proof).toMatchObject({ uuid: UUID, keySignature: CERT.publicKeySignatureV2, expiresAt: Date.parse(CERT.expiresAt) })
+    // The challenge is signed with the account's own key, which the API can check with the public half.
+    const publicKey = createPublicKey({ key: Buffer.from(body.proof.publicKey, 'base64'), format: 'der', type: 'spki' })
+    expect(verifySignature('sha256', Buffer.from(`shard-auth:${SERVER_ID}`), publicKey, Buffer.from(body.proof.signature, 'base64'))).toBe(true)
+    // Neither the access token nor the private key ever goes to Shard.
+    for (const c of calls.filter((x) => !x.url.includes('api.minecraftservices.com'))) {
       expect(JSON.stringify(c)).not.toContain(ACCESS_TOKEN)
+      expect(JSON.stringify(c)).not.toContain(PRIVATE_DER.slice(40, 120))
     }
     expect(calls.find((c) => c.url.endsWith('/v1/me'))?.headers.Authorization).toBe('Bearer shard-session-1')
   })

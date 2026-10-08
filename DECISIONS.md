@@ -125,3 +125,11 @@ Running log of product and engineering decisions made while building Shard Launc
   screenshots. The fake identity lives inside the Shard API service only; it is not an account,
   has no Minecraft token and cannot launch the game.
 - **Honest copy.** The Cosmetics page now says Shard Client shows your cape in-game (client 0.5.0+).
+
+## 0.3.1 (2026-10-08)
+- **Sign-in to Shard by Mojang-signed key.** Mojang answers 403 to every request from Cloudflare,
+  so the API's `hasJoined` check failed for everyone ("Mojang could not confirm this account").
+  The launcher now fetches the account's chat-signing certificate
+  (`POST https://api.minecraftservices.com/player/certificates`) and signs the API's one-time
+  challenge with it (`src/main/shard-api/proof.ts`); the API checks Mojang's signature itself.
+  The access token and private key never leave for anywhere but Mojang.

@@ -5,9 +5,9 @@
  * - The API's base URL comes from `SHARD_API_URL` (development override) or the hosted
  *   `services.json` in the meta repository, cached like the other manifests. When neither is
  *   available the online features report `unavailable` and the launcher keeps working locally.
- * - Sign-in is per Microsoft account: challenge, Mojang's server join (the same check every
- *   online-mode server uses), verify. The Minecraft access token goes to Mojang only; the Shard
- *   session token lives in memory and is never logged or written to disk.
+ * - Sign-in is per Microsoft account: challenge, then the account's Mojang-signed key pair signs
+ *   it (proof.ts), verify. The Minecraft access token goes to Mojang only; the Shard session
+ *   token lives in memory and is never logged or written to disk.
  */
 import { type ZodType } from 'zod'
 import { URLS } from '@shared/constants'
@@ -29,6 +29,7 @@ import { type AppContext, type ShardApiService } from '../context'
 import { handle } from '../ipc/router'
 import { createLogger } from '../logger'
 import { HttpError, httpRequest } from '../net/http'
+import { buildProof, CertificateResponseSchema, certificateFresh, type MojangCertificate, type PlayerProof } from './proof'
 import { JsonCache } from '../util/json-cache'
 
 const log = createLogger('shard-api')
@@ -73,6 +74,8 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
   /** accountId -> Shard session token. Memory only. */
   const sessions = new Map<string, string>()
   const signingIn = new Map<string, Promise<string>>()
+  /** Mojang-signed key pairs per account (private keys stay in memory, never logged or written). */
+  const certificates = new Map<string, MojangCertificate>()
 
   /** Development-only switches; both are unreachable in packaged builds. */
   const devAuth = (): boolean => !ctx.isPackaged && process.env.SHARD_API_DEV_AUTH === '1'
@@ -161,41 +164,49 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
     return parsed.data
   }
 
-  /** Mojang's server join, exactly as a Minecraft client joining an online-mode server does. */
-  async function mojangJoin(accessToken: string, uuid: string, serverId: string): Promise<void> {
+  /** The account's Mojang-signed key pair, cached until Mojang suggests refreshing it. */
+  async function certificate(accountId: string, accessToken: string): Promise<MojangCertificate> {
+    const cached = certificates.get(accountId)
+    if (cached && certificateFresh(cached, Date.now())) return cached
+    let text: string
     try {
-      await httpRequest(URLS.mojangJoin, {
+      const res = await httpRequest(URLS.mojangCertificates, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken, selectedProfile: uuidWithoutDashes(uuid), serverId }),
+        headers: { Authorization: `Bearer ${accessToken}` },
         timeoutMs: API_TIMEOUT_MS,
-        retries: 0
+        retries: 1
       })
+      text = await res.text()
     } catch (err) {
       if (err instanceof HttpError) {
         const message =
-          err.status === 403
-            ? 'Mojang refused the Shard sign-in. Multiplayer may be turned off for this account in its Xbox privacy settings.'
-            : err.status === 401
-              ? 'Your Minecraft session has expired. Sign in to your Microsoft account again.'
+          err.status === 401
+            ? 'Your Minecraft session has expired. Sign in to your Microsoft account again.'
+            : err.status === 403
+              ? 'Mojang would not give this account its signing key. Multiplayer may be turned off in its Xbox privacy settings.'
               : `Mojang could not confirm this account (HTTP ${err.status})`
         // `source` keeps a Mojang 401 from looking like an expired Shard session (no retry loop).
         throw new ShardError('AUTH_FAILED', message, { details: { source: 'mojang', status: err.status } })
       }
       throw err
     }
+    const parsed = CertificateResponseSchema.safeParse(JSON.parse(text))
+    if (!parsed.success) throw new ShardError('AUTH_FAILED', 'Mojang sent an account key the launcher does not understand')
+    certificates.set(accountId, parsed.data)
+    return parsed.data
   }
 
   async function signIn(who: Identity, url: string): Promise<string> {
     const { serverId } = await call(url, 'POST', '/v1/auth/challenge', ChallengeResponseSchema)
-    const body: { username: string; serverId: string; devUuid?: string } = { username: who.username, serverId }
+    const body: { username: string; serverId: string; devUuid?: string; proof?: PlayerProof } = { username: who.username, serverId }
     if (devAuth()) {
       // wrangler dev with DEV_AUTH=1 accepts the uuid as-is (local testing only).
       body.devUuid = who.uuid
     } else {
       if (who.fake) throw new ShardError('AUTH_FAILED', 'The development account only works with SHARD_API_DEV_AUTH=1')
       const session = await ctx.services.accounts.getSession(who.accountId)
-      await mojangJoin(session.accessToken, session.uuid, serverId)
+      const cert = await certificate(who.accountId, session.accessToken)
+      body.proof = buildProof(cert, session.uuid, serverId)
       body.username = session.username
     }
     const verified = await call(url, 'POST', '/v1/auth/verify', VerifyResponseSchema, { body })

@@ -59,3 +59,12 @@ describe('format helpers', () => {
     expect(uuidWithDashes('nope')).toBe('nope')
   })
 })
+
+describe('firstSet', () => {
+  it('skips missing and blank values (CI bakes unset variables in as "")', async () => {
+    const { firstSet } = await import('@shared/format')
+    expect(firstSet(null, '', '  ', 'https://a.example/x.json')).toBe('https://a.example/x.json')
+    expect(firstSet(undefined, ' https://b.example ')).toBe('https://b.example')
+    expect(firstSet('', undefined, null)).toBeNull()
+  })
+})

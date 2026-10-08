@@ -133,3 +133,11 @@ Running log of product and engineering decisions made while building Shard Launc
   (`POST https://api.minecraftservices.com/player/certificates`) and signs the API's one-time
   challenge with it (`src/main/shard-api/proof.ts`); the API checks Mojang's signature itself.
   The access token and private key never leave for anywhere but Mojang.
+
+## 0.3.2 (2026-10-08)
+- **"Invalid URL" for the Shard client list.** The release workflow passes the optional
+  `SHARD_MANIFEST_URL`, `SHARD_BUNDLED_MODS_URL` and `SHARD_COSMETICS_URL` repository variables;
+  unset, they are baked into the build as "", and `??` does not skip "", so every released
+  launcher fetched the manifest from "" and showed "Shard client builds aren't published yet"
+  (instances kept whatever jar they had). `manifestUrls()` now uses `firstSet`, which treats blank
+  values as unset. Verified by building with the three variables set to "".

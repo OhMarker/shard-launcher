@@ -1,3 +1,4 @@
+import { firstSet } from '@shared/format'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, Menu, nativeImage, type NativeImage, Tray } from 'electron'
@@ -101,17 +102,13 @@ async function bootstrap(): Promise<void> {
       process.env.MSA_REDIRECT_URI?.trim() || import.meta.env.MSA_REDIRECT_URI?.trim() || MSA.redirectUri,
     manifestUrls: () => {
       const s = settings.get().manifestUrls
+      // firstSet, not ??: release builds bake unset CI variables in as "" (that was "Invalid URL").
       return {
-        shard: s.shard ?? process.env.SHARD_MANIFEST_URL ?? import.meta.env.SHARD_MANIFEST_URL ?? URLS.shardManifest,
+        shard: firstSet(s.shard, process.env.SHARD_MANIFEST_URL, import.meta.env.SHARD_MANIFEST_URL) ?? URLS.shardManifest,
         bundledMods:
-          s.bundledMods ??
-          process.env.SHARD_BUNDLED_MODS_URL ??
-          import.meta.env.SHARD_BUNDLED_MODS_URL ??
-          URLS.bundledMods,
-        cosmetics:
-          s.cosmetics ?? process.env.SHARD_COSMETICS_URL ?? import.meta.env.SHARD_COSMETICS_URL ?? URLS.cosmetics,
-        services:
-          s.services ?? process.env.SHARD_SERVICES_URL ?? import.meta.env.SHARD_SERVICES_URL ?? URLS.services
+          firstSet(s.bundledMods, process.env.SHARD_BUNDLED_MODS_URL, import.meta.env.SHARD_BUNDLED_MODS_URL) ?? URLS.bundledMods,
+        cosmetics: firstSet(s.cosmetics, process.env.SHARD_COSMETICS_URL, import.meta.env.SHARD_COSMETICS_URL) ?? URLS.cosmetics,
+        services: firstSet(s.services, process.env.SHARD_SERVICES_URL, import.meta.env.SHARD_SERVICES_URL) ?? URLS.services
       }
     },
     modrinthUserAgent: () => {

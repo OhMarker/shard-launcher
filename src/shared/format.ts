@@ -96,3 +96,12 @@ export function uuidWithoutDashes(id: string): string {
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`
 }
+
+/** The first value that is a non-blank string (trimmed), or null. Empty strings count as unset. */
+export function firstSet(...values: (string | null | undefined)[]): string | null {
+  for (const v of values) {
+    const t = v?.trim()
+    if (t) return t
+  }
+  return null
+}

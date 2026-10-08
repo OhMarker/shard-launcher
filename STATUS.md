@@ -9,9 +9,8 @@ Last updated 2026-10-08.
   filtering, empty wardrobe filters are hidden, no "Lunar" wording. Details: DECISIONS.md "0.2.0".
 - meta serves the new `cosmetics.json` (texture hosted in meta) and Shard Client 0.5.0 as latest,
   which draws the equipped cape in-game on your own player.
-- **On `main`, not released yet (next launcher version):** bundled cosmetic textures are copied
-  into `<data>/cosmetics/textures` too, so the in-game cape also works when the hosted catalogue
-  is unreachable (265 tests). Release it as 0.2.1 when convenient: bump `version`, tag, push.
+- **0.2.1 (2026-10-08):** bundled cosmetic textures are copied into `<data>/cosmetics/textures`
+  too, so the in-game cape also works when the hosted catalogue is unreachable (265 tests).
 
 ## Shard Launcher (this repo)
 - Complete and verified: 264 unit tests, lint and typecheck clean, headless renders of every page,

@@ -118,11 +118,19 @@ export function Wardrobe({
   const list = useMemo(() => filterCosmetics(all, filters, owned), [all, filters, owned])
   const equipped = view?.equipped
 
-  const typeItems: TabItem<TypeFilter>[] = TYPE_FILTERS.map((t) => ({
+  // Only offer filters the catalogue can match: a type tab or rarity chip with nothing behind it
+  // is noise. The rarity row disappears when every item shares one rarity.
+  const typeItems: TabItem<TypeFilter>[] = TYPE_FILTERS.filter(
+    (t) => t === 'all' || counts[t] > 0
+  ).map((t) => ({
     value: t,
     label: t === 'all' ? 'All' : TYPE_LABELS[t],
     count: counts[t]
   }))
+  const rarities = useMemo(
+    () => COSMETIC_RARITIES.filter((r) => all.some((c) => c.rarity === r)),
+    [all]
+  )
 
   const isEquipped = (c: Cosmetic): boolean =>
     c.type === 'emote'
@@ -159,25 +167,27 @@ export function Wardrobe({
             items={typeItems}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Rarity">
-          {COSMETIC_RARITIES.map((r) => (
-            <RarityChip
-              key={r}
-              rarity={r}
-              active={filters.rarities.includes(r)}
-              onClick={() => setFilters((f) => ({ ...f, rarities: toggleRarity(f.rarities, r) }))}
-            />
-          ))}
-          {filters.rarities.length > 0 && (
-            <Button
-              size="xs"
-              variant="ghost"
-              onClick={() => setFilters((f) => ({ ...f, rarities: [] }))}
-            >
-              Clear
-            </Button>
-          )}
-        </div>
+        {rarities.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Rarity">
+            {rarities.map((r) => (
+              <RarityChip
+                key={r}
+                rarity={r}
+                active={filters.rarities.includes(r)}
+                onClick={() => setFilters((f) => ({ ...f, rarities: toggleRarity(f.rarities, r) }))}
+              />
+            ))}
+            {filters.rarities.length > 0 && (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => setFilters((f) => ({ ...f, rarities: [] }))}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        )}
       </Card>
 
       {loading ? (

@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { IdleAnimation, RunningAnimation, SkinViewer as Skinview3d, WalkingAnimation, type PlayerAnimation } from 'skinview3d'
+import {
+  IdleAnimation,
+  RunningAnimation,
+  SkinViewer as Skinview3d,
+  WalkingAnimation,
+  type PlayerAnimation
+} from 'skinview3d'
 import { cn } from '@/lib/cn'
 
 export type ViewerAnimation = 'idle' | 'walk' | 'run' | 'none'
@@ -7,7 +13,7 @@ export type ViewerAnimation = 'idle' | 'walk' | 'run' | 'none'
 export interface SkinViewerProps {
   /** Skin PNG: data URL or https URL. null renders the default Steve/Alex. */
   skinUrl: string | null | undefined
-  /** Cape/elytra texture (64x32 cape layout). null removes the cape. */
+  /** Cape/elytra texture (64x32 cape layout, or a whole multiple of it). null removes the cape. */
   capeUrl?: string | null
   model?: 'classic' | 'slim' | 'auto'
   back?: 'cape' | 'elytra'
@@ -33,6 +39,26 @@ function makeAnimation(kind: ViewerAnimation): PlayerAnimation | null {
     default:
       return null
   }
+}
+
+// three.js filter constants (three is skinview3d's dependency, not ours).
+const LINEAR_FILTER = 1006
+const LINEAR_MIPMAP_LINEAR_FILTER = 1008
+
+/**
+ * skinview3d samples capes with nearest filtering, which keeps 64x32 pixel art crisp but makes a
+ * high-resolution cape (the OhMarker cape is 4096x2048) shimmer and look jagged when it is drawn
+ * a few hundred pixels tall. Capes above 64 px wide get mipmapped trilinear filtering instead.
+ */
+function smoothHighResCape(viewer: Skinview3d): void {
+  const texture = viewer.playerObject.cape.map
+  const width = (texture?.image as { width?: number } | undefined)?.width ?? 0
+  if (!texture || width <= 64) return
+  texture.magFilter = LINEAR_FILTER
+  texture.minFilter = LINEAR_MIPMAP_LINEAR_FILTER
+  texture.generateMipmaps = true
+  texture.anisotropy = viewer.renderer.capabilities.getMaxAnisotropy()
+  texture.needsUpdate = true
 }
 
 /**
@@ -148,11 +174,9 @@ export function SkinViewer({
       viewer.loadSkin(placeholderSkin(), { model: 'default' })
       return
     }
-    void viewer
-      .loadSkin(skinUrl, { model: skinModel })
-      .catch(() => {
-        if (!cancelled) viewer.loadSkin(placeholderSkin(), { model: 'default' })
-      })
+    void viewer.loadSkin(skinUrl, { model: skinModel }).catch(() => {
+      if (!cancelled) viewer.loadSkin(placeholderSkin(), { model: 'default' })
+    })
     return () => {
       cancelled = true
     }
@@ -166,9 +190,13 @@ export function SkinViewer({
       return
     }
     let cancelled = false
-    void viewer.loadCape(capeUrl, { backEquipment: back }).catch(() => {
-      if (!cancelled) viewer.resetCape()
-    })
+    void Promise.resolve(viewer.loadCape(capeUrl, { backEquipment: back }))
+      .then(() => {
+        if (!cancelled) smoothHighResCape(viewer)
+      })
+      .catch(() => {
+        if (!cancelled) viewer.resetCape()
+      })
     return () => {
       cancelled = true
     }

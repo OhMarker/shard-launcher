@@ -1,7 +1,7 @@
 {
   "name": "shard-launcher",
   "productName": "Shard Launcher",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shard Launcher - Sharpen your crystal PvP.",
   "main": "./out/main/index.js",
   "type": "module",
@@ -28,7 +28,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "icons": "tsx scripts/generate-icons.ts",
-    "cosmetics:samples": "tsx scripts/generate-cosmetics.ts",
     "postinstall": "electron-builder install-app-deps",
     "dist": "npm run typecheck && npm run build && electron-builder",
     "dist:win": "npm run typecheck && npm run build && electron-builder --win",

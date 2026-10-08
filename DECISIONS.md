@@ -1,6 +1,6 @@
 # Decisions
 
-Running log of product and engineering decisions made while building Shard Launcher. Newest at the bottom of each section. When a choice was not dictated by the brief, the rule was: do what Lunar Client's launcher or the Modrinth App would do.
+Running log of product and engineering decisions made while building Shard Launcher. Newest at the bottom of each section. When a choice was not dictated by the brief, the rule was: do what the best existing launchers (the Modrinth App, Prism Launcher) would do.
 
 ## Project layout and tooling
 
@@ -61,3 +61,26 @@ Running log of product and engineering decisions made while building Shard Launc
 
 - **Smoke screenshot.** Setting `SHARD_SMOKE_SCREENSHOT=<path>` makes the main process capture the window after load and quit. Used to verify the UI without a display server or screen access.
 - **End-to-end smoke harness (development builds only).** `SHARD_SMOKE_INSTALL=<version|latest>` creates an instance and runs the whole prepare pipeline against the real Mojang/Fabric/Modrinth endpoints; `SHARD_SMOKE_LAUNCH=1` then launches the game with a placeholder session and waits for the title screen (LWJGL backend + sound engine + texture atlas log lines) before killing it; `SHARD_SMOKE_RESULT=<path>` writes a JSON summary. The placeholder session exists only in `src/main/smoke.ts`, is unreachable when `app.isPackaged`, and is not an offline mode: it is how the phase-3 requirement ("a vanilla 1.21.x instance must launch and reach the title screen") is verified without a Microsoft account on the build machine.
+
+## 0.2.0 (2026-10-08)
+- **One cosmetic: the OhMarker cape.** The owner asked for the 14 generated sample cosmetics
+  (capes, cloaks, wings, hats, bandana, back bling, emotes) to be removed and replaced by their own
+  cape. They are gone, with `scripts/generate-cosmetics.ts` and `npm run cosmetics:samples`.
+- **4K cape from the owner's art.** `scripts/build-ohmarker-cape.py` writes a 4096x2048 texture in
+  the 64x32 cape layout (64 px per cape pixel) and a 512x512 preview from the two images in
+  `art/ohmarker-cape/`. The front comes from the banner, whose card is the same artwork at about
+  twice the resolution of the 2000x1000 cape file; the inner side, edges and elytra are upscaled
+  from the cape file with the stars separated from the nebula so they stay points instead of blurs
+  (bright surfaces such as the moon are resampled normally).
+- **Smooth high-resolution capes in the 3D preview.** skinview3d samples capes with nearest
+  filtering, right for 64x32 pixel art but jagged and shimmering for a 4K painting drawn a few
+  hundred pixels tall. `SkinViewer` switches capes wider than 64 px to mipmapped trilinear
+  filtering with anisotropy; 64x32 capes are unchanged.
+- **Wardrobe filters show only what exists.** Type tabs with no items are hidden, and the rarity
+  row only appears when the catalogue has more than one rarity.
+- **Honest copy.** The Cosmetics page no longer says equipped items render in-game: the Shard
+  Client does not draw cosmetics yet (its roadmap). "Lunar"-style wording was removed from the
+  README and here.
+- **Hosted catalogue.** meta's `cosmetics.json` points the cape's texture and preview at copies in
+  the meta repository (https) rather than `bundled://`, so launchers that do not bundle the cape
+  (0.1.0) still show it.

@@ -2,6 +2,16 @@
 
 Last updated 2026-10-08.
 
+## 0.2.0 (committed locally, not tagged or released yet)
+- Cosmetics are now just the OhMarker cape (4096x2048, built by `scripts/build-ohmarker-cape.py`
+  from `art/ohmarker-cape/`); the 14 sample cosmetics are removed. The 3D preview draws
+  high-resolution capes with smooth filtering. Empty wardrobe filters are hidden. No "Lunar"
+  wording left in user-facing text. Details in DECISIONS.md "0.2.0".
+- Verified: typecheck, lint, 264 tests; headless renders of the Cosmetics page with the bundled
+  catalogue and with the hosted one served locally (texture and preview downloaded and cached).
+- To publish: `git push origin main`, then `git tag v0.2.0 && git push origin v0.2.0` (the Release
+  workflow builds every platform); push ../meta (new `cosmetics.json` and `cosmetics/` folder).
+
 ## Shard Launcher (this repo)
 - Complete and verified: 264 unit tests, lint and typecheck clean, headless renders of every page,
   real end-to-end runs (vanilla and Shard instances downloaded from Mojang/Fabric/Modrinth and reached

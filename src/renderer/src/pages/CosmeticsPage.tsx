@@ -148,7 +148,7 @@ export function CosmeticsPage() {
     <PageBody wide>
       <PageHeader
         title="Cosmetics"
-        description="Capes, cloaks, wings and more. Equipped items render in-game through the Shard client."
+        description="Pick what you wear. The preview shows it on your skin; in-game rendering comes in a later Shard Client update."
         action={
           <>
             {view && source && (

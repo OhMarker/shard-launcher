@@ -7,8 +7,8 @@
 
 ---
 
-Shard Launcher is a production Electron launcher in the spirit of Lunar Client's launcher, the
-Modrinth App and Prism Launcher:
+Shard Launcher is a production Electron launcher for crystal PvP players, built around the Shard
+Client:
 
 - **Microsoft sign-in** with the full Xbox Live → XSTS → Minecraft Services chain, PKCE in a
   popup, device-code fallback, silent refresh, multi-account, encrypted token storage.
@@ -66,7 +66,6 @@ instances, browsing Modrinth, the wardrobe) still works.
 | `npm run format` | Prettier. |
 | `npm test` | Vitest unit tests (auth chain, launch arguments, rules, Fabric merge, Modrinth client, version filtering, manifests, …). |
 | `npm run icons` | Regenerates all app icons from `resources/icon.svg`. |
-| `npm run cosmetics:samples` | Regenerates the bundled sample cosmetics. |
 | `npm run dist[:win|:mac|:linux]` | Typecheck, build and package installers into `dist/`. |
 
 ### Smoke screenshot
@@ -194,8 +193,8 @@ src/
   preload/         the single `window.shard` bridge (sandboxed, CommonJS, Zod-validated)
   renderer/        React app (pages, design system, stores, hooks)
   shared/          types, Zod schemas, IPC contract, version rules shared by all three
-resources/         icon.svg, generated icons, bundled sample cosmetics
-scripts/           icon and cosmetics generators
+resources/         icon.svg, generated icons, bundled cosmetics (the OhMarker cape)
+scripts/           icon generator, OhMarker cape builder (sources in art/ohmarker-cape)
 tests/             Vitest unit tests
 .github/workflows/ CI (lint, typecheck, test, build, smoke screenshots) and tag releases
 ```

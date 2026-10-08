@@ -208,8 +208,7 @@ describe('bundled cosmetics manifest', () => {
     expect(parsed.success).toBe(true)
     if (!parsed.success) return
     const bundled = toCosmeticsManifest(parsed.data)
-    expect(bundled.cosmetics).toHaveLength(15)
-    expect(new Set(bundled.cosmetics.map((c) => c.id)).size).toBe(15)
+    expect(bundled.cosmetics.map((c) => c.id)).toEqual(['cape-ohmarker'])
 
     for (const item of bundled.cosmetics) {
       for (const url of [item.textureUrl, item.previewUrl]) {
@@ -221,7 +220,9 @@ describe('bundled cosmetics manifest', () => {
         const size = pngDimensions(png)
         expect(size).not.toBeNull()
         if (url === item.textureUrl && CAPE_LAYOUT_TYPES.has(item.type)) {
-          expect(size).toEqual({ width: 64, height: 32 })
+          // The 64x32 cape layout at any whole multiple; the OhMarker cape is 4096x2048.
+          expect(size?.width).toBe((size?.height ?? 0) * 2)
+          expect((size?.width ?? 0) % 64).toBe(0)
         }
       }
     }

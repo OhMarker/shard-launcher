@@ -34,13 +34,60 @@ export const ShardMeSchema = z.object({
 export const VerifyResponseSchema = z.object({ session: z.string().min(1), me: ShardMeSchema })
 export const ChallengeResponseSchema = z.object({ serverId: z.string().regex(/^[0-9a-f]{32}$/) })
 
-/** Bundles carry the ids they give in `items`. */
-export const ShopItemSchema = z.object({
+const count = z.number().int().nonnegative().catch(0).default(0)
+
+/**
+ * Bundles carry the ids they give in `items`. `basePrice` and `salePercent` arrived with sales;
+ * older APIs send neither, so the base price is the price and there is no sale.
+ */
+const ShopItemBase = z.object({
   id: z.string(),
   price: z.number().int(),
+  basePrice: z.number().int().optional(),
+  salePercent: z.number().int().min(0).max(90).catch(0).default(0),
   items: z.array(z.string()).optional()
 })
+type ShopItemRaw = z.infer<typeof ShopItemBase>
+const withBase = <T extends ShopItemRaw>(item: T): T & { basePrice: number } => ({
+  ...item,
+  basePrice: item.basePrice ?? item.price,
+  salePercent: item.basePrice === undefined || item.basePrice <= item.price ? 0 : item.salePercent
+})
+export const ShopItemSchema = ShopItemBase.transform(withBase)
 export const ShopResponseSchema = z.object({ items: z.array(ShopItemSchema) })
+
+/** Admin shop rows add `hidden` and `sold` (both default for older or partial answers). */
+export const AdminShopItemSchema = ShopItemBase.extend({
+  hidden: z.boolean().catch(false).default(false),
+  sold: count
+}).transform(withBase)
+export const AdminShopResponseSchema = z.object({ items: z.array(AdminShopItemSchema) })
+
+export const AdminStatsSchema = z.object({
+  players: count,
+  inGameNow: count,
+  activeToday: count,
+  tokensHeld: z.number().int().catch(0).default(0),
+  purchases: count,
+  codeRedemptions: count,
+  staff: count
+})
+
+export const PromoCodeSchema = z.object({
+  code: z.string().min(1),
+  tokens: count,
+  items: z.array(z.string()).catch([]).default([]),
+  maxUses: z.number().int().positive().nullable().catch(null).default(null),
+  expiresAt: z.number().int().nonnegative().nullable().catch(null).default(null),
+  round: z.number().int().catch(1).default(1),
+  active: z.boolean().catch(true).default(true),
+  note: z.string().nullable().catch('').default('').transform((n) => n ?? ''),
+  usesThisRound: count,
+  usesTotal: count,
+  createdAt: z.number().nullable().catch(null).default(null)
+})
+export const PromoCodesResponseSchema = z.object({ codes: z.array(PromoCodeSchema) })
+export const DeletedCodeSchema = z.object({ deleted: z.string() })
 
 const PersonSchema = z.object({ uuid, name: z.string() })
 
@@ -64,3 +111,8 @@ export const AdminPlayerSchema = z.object({
 
 export const AdminPlayersResponseSchema = z.object({ players: z.array(AdminPlayerSchema) })
 export const AdminStaffResponseSchema = z.object({ staff: z.array(AdminPlayerSchema) })
+
+export const RedeemResponseSchema = z.object({
+  granted: z.object({ tokens: count, items: z.array(z.string()).catch([]).default([]) }),
+  me: ShardMeSchema
+})

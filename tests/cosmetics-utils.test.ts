@@ -16,7 +16,7 @@ interface RarityStyle {
   border: string
   glow: string | null
 }
-type TypeFilter = 'all' | CosmeticType
+type TypeFilter = 'all' | 'special' | CosmeticType
 interface WardrobeFilters {
   query: string
   type: TypeFilter
@@ -114,7 +114,7 @@ describe('cosmetics-utils: palette', () => {
 
   it('ranks rarities in ascending order', () => {
     const ranks = COSMETIC_RARITIES.map((r) => u.RARITY_RANK[r])
-    expect(ranks).toEqual([0, 1, 2, 3, 4])
+    expect(ranks).toEqual([0, 1, 2, 3, 4, 5])
   })
 
   it('builds a gradient from the rarity colour', () => {
@@ -126,7 +126,7 @@ describe('cosmetics-utils: palette', () => {
 describe('cosmetics-utils: types and slots', () => {
   it('labels every type and lists the filters', () => {
     for (const type of COSMETIC_TYPES) expect(u.TYPE_LABELS[type].length).toBeGreaterThan(0)
-    expect(u.TYPE_FILTERS).toEqual(['all', ...COSMETIC_TYPES.filter((t) => t !== 'bundle')])
+    expect(u.TYPE_FILTERS).toEqual(['all', 'special', ...COSMETIC_TYPES.filter((t) => t !== 'bundle')])
   })
 
   it('maps types to slots and back equipment', () => {

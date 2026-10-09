@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Blocks, Download, House, Layers, Settings, ShieldCheck, Shirt, Sparkles, Users } from 'lucide-react'
+import { Blocks, Download, House, Layers, Settings, ShieldCheck, Shirt, Sparkles, Ticket, Users } from 'lucide-react'
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { useShardStaffRole } from '@/hooks/useOnline'
 import { invoke, queryKeys } from '@/lib/api'
@@ -15,6 +15,7 @@ const NAV: Array<{ page: Page; label: string; icon: ReactNode }> = [
   { page: 'mods', label: 'Mods', icon: <Blocks /> },
   { page: 'skins', label: 'Skins', icon: <Shirt /> },
   { page: 'cosmetics', label: 'Cosmetics', icon: <Sparkles /> },
+  { page: 'codes', label: 'Codes', icon: <Ticket /> },
   { page: 'friends', label: 'Friends', icon: <Users /> },
   { page: 'updates', label: 'Updates', icon: <Download /> },
   { page: 'settings', label: 'Settings', icon: <Settings /> },
@@ -34,7 +35,7 @@ export function Sidebar() {
   const isStaff = useShardStaffRole() !== null
   const nav = useMemo(() => (isStaff ? NAV : NAV.filter((item) => item.page !== 'admin')), [isStaff])
 
-  // Ctrl/Cmd + 1..9 jumps between the visible pages.
+  // Ctrl/Cmd + 1..9 jumps between the visible pages (a tenth page has no shortcut).
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return
@@ -83,10 +84,12 @@ export function Sidebar() {
               {item.page === 'updates' && updateReady && (
                 <span className="relative size-2 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--accent-rgb)/0.9)]" aria-label="Update available" />
               )}
-              <span className="relative text-[10px] text-fg-subtle opacity-0 transition-opacity group-hover:opacity-100">
-                {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
-                {i + 1}
-              </span>
+              {i < 9 && (
+                <span className="relative text-[10px] text-fg-subtle opacity-0 transition-opacity group-hover:opacity-100">
+                  {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
+                  {i + 1}
+                </span>
+              )}
             </button>
           )
         })}

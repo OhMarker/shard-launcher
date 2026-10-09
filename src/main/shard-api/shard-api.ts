@@ -24,9 +24,15 @@ import {
 import {
   AdminPlayerSchema,
   AdminPlayersResponseSchema,
+  AdminShopResponseSchema,
   AdminStaffResponseSchema,
+  AdminStatsSchema,
   ChallengeResponseSchema,
+  DeletedCodeSchema,
   FriendsViewSchema,
+  PromoCodeSchema,
+  PromoCodesResponseSchema,
+  RedeemResponseSchema,
   ServicesJsonSchema,
   ShardMeSchema,
   ShopResponseSchema,
@@ -329,15 +335,41 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
     adminGrant: (player, id) => authed('POST', '/v1/admin/grant', AdminPlayerSchema, { player, id }),
     adminRevoke: (player, id) => authed('POST', '/v1/admin/revoke', AdminPlayerSchema, { player, id }),
     async adminPrice(id, price) {
-      const { items } = await authed('POST', '/v1/admin/price', ShopResponseSchema, { id, price })
-      shopMemo = { items, at: Date.now() }
-      return items
+      // Newer APIs answer with every item, hidden ones too; the public shop leaves those out.
+      const { items } = await authed('POST', '/v1/admin/price', AdminShopResponseSchema, { id, price })
+      const shop = items.filter((item) => !item.hidden).map(({ hidden: _hidden, sold: _sold, ...item }) => item)
+      shopMemo = { items: shop, at: Date.now() }
+      return shop
     },
     async adminStaff() {
       const { staff } = await authed('GET', '/v1/admin/staff', AdminStaffResponseSchema)
       return staff
     },
-    adminRole: (player, role) => authed('POST', '/v1/admin/role', AdminPlayerSchema, { player, role })
+    adminRole: (player, role) => authed('POST', '/v1/admin/role', AdminPlayerSchema, { player, role }),
+
+    async redeem(code) {
+      const result = await authed('POST', '/v1/redeem', RedeemResponseSchema, { code })
+      log.info(`Redeemed a code (${result.granted.tokens} tokens, ${result.granted.items.length} items)`)
+      return result
+    },
+    async adminShop() {
+      const { items } = await authed('GET', '/v1/admin/shop', AdminShopResponseSchema)
+      return items
+    },
+    async adminShopUpdate(id, patch) {
+      const { items } = await authed('POST', '/v1/admin/shop', AdminShopResponseSchema, { id, ...patch })
+      // The public shop changed (a sale or a hidden item): drop the memo so the next read is fresh.
+      shopMemo = null
+      return items
+    },
+    adminStats: () => authed('GET', '/v1/admin/stats', AdminStatsSchema),
+    async adminCodes() {
+      const { codes } = await authed('GET', '/v1/admin/codes', PromoCodesResponseSchema)
+      return codes
+    },
+    adminCodeSave: (input) => authed('POST', '/v1/admin/codes', PromoCodeSchema, input),
+    adminCodeReset: (code) => authed('POST', '/v1/admin/codes/reset', PromoCodeSchema, { code }),
+    adminCodeDelete: (code) => authed('POST', '/v1/admin/codes/delete', DeletedCodeSchema, { code })
   }
   return service
 }
@@ -358,4 +390,12 @@ export function registerShardApiIpc(ctx: AppContext): void {
   handle('admin:price', ({ id, price }) => api().adminPrice(id, price))
   handle('admin:staff', () => api().adminStaff())
   handle('admin:role', ({ player, role }) => api().adminRole(player, role))
+  handle('online:redeem', ({ code }) => api().redeem(code))
+  handle('admin:shop', () => api().adminShop())
+  handle('admin:shopUpdate', ({ id, hidden, salePercent }) => api().adminShopUpdate(id, { hidden, salePercent }))
+  handle('admin:stats', () => api().adminStats())
+  handle('admin:codes', () => api().adminCodes())
+  handle('admin:codeSave', (input) => api().adminCodeSave(input))
+  handle('admin:codeReset', ({ code }) => api().adminCodeReset(code))
+  handle('admin:codeDelete', ({ code }) => api().adminCodeDelete(code))
 }

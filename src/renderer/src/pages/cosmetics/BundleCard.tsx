@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Check, Circle, Coins, Gift, Lock } from 'lucide-react'
-import { type BundleState } from '@shared/online'
+import { type BundleState, type SaleDisplay } from '@shared/online'
 import { type Cosmetic } from '@shared/types'
 import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/Badge'
@@ -9,6 +9,7 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import { BuyButton } from '@/components/cosmetics/BuyButton'
 import { CosmeticTile } from '@/components/cosmetics/CosmeticTile'
 import { RarityBadge } from '@/components/cosmetics/RarityBadge'
+import { SaleTag } from '@/components/cosmetics/SaleTag'
 import { TypeIcon } from '@/components/cosmetics/TypeIcon'
 import { TYPE_LABELS, bundleHeadline, bundleNote } from './cosmetics-utils'
 
@@ -23,9 +24,11 @@ export interface BundleCardProps {
   onBuy: () => void
   buying: boolean
   onItemClick: (cosmetic: Cosmetic) => void
+  /** The bundle's sale (old price and "-N%"), when it is on sale. */
+  sale?: SaleDisplay | null
 }
 
-/** The featured card for a bundle such as the OhMarker set, above the wardrobe grid. */
+/** The featured card for a bundle (the OhMarker set, the Halloween set), above the wardrobe grid. */
 export function BundleCard({
   bundle,
   previewUrl,
@@ -34,9 +37,12 @@ export function BundleCard({
   tokens,
   onBuy,
   buying,
-  onItemClick
+  onItemClick,
+  sale = null
 }: BundleCardProps) {
   const note = bundleNote(state)
+  const onSale = !state.complete && sale?.was != null && sale.badge !== null
+  const special = bundle.rarity === 'special'
   return (
     <motion.section
       layout
@@ -47,7 +53,9 @@ export function BundleCard({
         'glass relative grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] overflow-hidden rounded-[var(--radius-lg)]',
         state.complete
           ? 'border-accent/50'
-          : 'border-[rgb(var(--accent-rgb)/0.35)] shadow-[0_0_32px_-12px_rgb(var(--accent-rgb)/0.7)]'
+          : special
+            ? 'border-[#fb923c66] shadow-[0_0_36px_-12px_rgb(251_146_60/0.75),0_0_48px_-20px_rgb(168_85_247/0.8)]'
+            : 'border-[rgb(var(--accent-rgb)/0.35)] shadow-[0_0_32px_-12px_rgb(var(--accent-rgb)/0.7)]'
       )}
     >
       {/* The set picture is 16:9; show it whole rather than cropped to one item. */}
@@ -74,6 +82,7 @@ export function BundleCard({
             Set
           </Badge>
           <RarityBadge rarity={bundle.rarity} />
+          {onSale && sale?.badge && <SaleTag badge={sale.badge} />}
           {state.complete && (
             <Badge tone="success" icon={<Check />}>
               Owned
@@ -81,7 +90,19 @@ export function BundleCard({
           )}
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-fg">{bundleHeadline(bundle.name, state)}</h3>
+          <h3 className="text-lg font-semibold text-fg">
+            {onSale && state.price !== null ? (
+              <>
+                {bundle.name} — {state.price}{' '}
+                <s className="text-sm font-normal text-fg-subtle" aria-label={`was ${sale?.was}`}>
+                  {sale?.was}
+                </s>{' '}
+                tokens{state.saving !== null ? ` · save ${state.saving}` : ''}
+              </>
+            ) : (
+              bundleHeadline(bundle.name, state)
+            )}
+          </h3>
           {bundle.description && (
             <p className="mt-1 text-[13px] leading-relaxed text-fg-muted">{bundle.description}</p>
           )}
@@ -132,7 +153,7 @@ export function BundleCard({
           ) : state.price !== null && tokens !== null ? (
             <BuyButton
               size="sm"
-              offer={{ price: state.price, tokens }}
+              offer={{ price: state.price, tokens, was: onSale ? sale?.was : null }}
               onBuy={onBuy}
               loading={buying}
             />

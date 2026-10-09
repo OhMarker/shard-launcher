@@ -59,10 +59,10 @@ const BANDANA = item('bandana-ohmarker', 'bandana', { name: 'OhMarker Bandana' }
 const BUNDLE = item('bundle-ohmarker', 'bundle', { name: 'OhMarker Set', items: SET })
 const CATALOGUE = [CAPE, SHIELD, BANDANA, BUNDLE]
 const SHOP: ShopItem[] = [
-  { id: 'bandana-ohmarker', price: 1000 },
-  { id: 'bundle-ohmarker', price: 2000, items: ['bandana-ohmarker', 'cape-ohmarker', 'shield-ohmarker'] },
-  { id: 'cape-ohmarker', price: 1000 },
-  { id: 'shield-ohmarker', price: 1000 }
+  { id: 'bandana-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 },
+  { id: 'bundle-ohmarker', price: 2000, basePrice: 2000, salePercent: 0, items: ['bandana-ohmarker', 'cape-ohmarker', 'shield-ohmarker'] },
+  { id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 },
+  { id: 'shield-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }
 ]
 const NAMES = new Map(CATALOGUE.map((c) => [c.id, c.name]))
 
@@ -146,7 +146,7 @@ describe('Shard API shapes for the set', () => {
   })
 
   it('syncs only what the shop sells, and never clears a shield on an API without shields', () => {
-    const oldShop: ShopItem[] = [{ id: 'cape-ohmarker', price: 1000 }]
+    const oldShop: ShopItem[] = [{ id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }]
     expect(apiSyncsSlot('shield', 'shield-ohmarker', SHOP)).toBe(true)
     expect(apiSyncsSlot('shield', null, SHOP)).toBe(true)
     expect(apiSyncsSlot('shield', 'shield-ohmarker', oldShop)).toBe(false)

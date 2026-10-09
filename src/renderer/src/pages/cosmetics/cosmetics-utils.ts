@@ -21,8 +21,10 @@ export interface RarityStyle {
   soft: string
   /** Border colour for badges and chips. */
   border: string
-  /** Outer glow, only for the top tier. */
+  /** Outer glow, only for the top tiers. */
   glow: string | null
+  /** Two-colour fill for the event tier (special), drawn instead of `soft`. */
+  gradient: string | null
 }
 
 const rgba = (hex: string, alpha: number): string => {
@@ -38,8 +40,13 @@ const base: Record<CosmeticRarity, { label: string; color: string }> = {
   rare: { label: 'Rare', color: '#60a5fa' },
   epic: { label: 'Epic', color: '#a78bfa' },
   legendary: { label: 'Legendary', color: '#fbbf24' },
-  mythic: { label: 'Mythic', color: '#fb7185' }
+  mythic: { label: 'Mythic', color: '#fb7185' },
+  // Event items: pumpkin orange with a purple second colour (see SPECIAL_SECOND).
+  special: { label: 'Special', color: '#fb923c' }
 }
+
+/** The second colour of the special tier's gradient. */
+export const SPECIAL_SECOND = '#a855f7'
 
 export const RARITY_PALETTE: Record<CosmeticRarity, RarityStyle> = Object.fromEntries(
   COSMETIC_RARITIES.map((rarity) => {
@@ -49,8 +56,19 @@ export const RARITY_PALETTE: Record<CosmeticRarity, RarityStyle> = Object.fromEn
       color,
       soft: rgba(color, 0.16),
       border: rgba(color, 0.35),
-      glow: rarity === 'mythic' ? `0 0 18px ${rgba(color, 0.55)}` : null
+      glow:
+        rarity === 'special'
+          ? `0 0 14px ${rgba(color, 0.45)}, 0 0 22px ${rgba(SPECIAL_SECOND, 0.35)}`
+          : rarity === 'mythic'
+            ? `0 0 18px ${rgba(color, 0.55)}`
+            : null,
+      gradient:
+        rarity === 'special'
+          ? // Over a dark base so the badge stays readable on bright preview images.
+            `linear-gradient(100deg, ${rgba(color, 0.3)} 0%, ${rgba(SPECIAL_SECOND, 0.34)} 100%), linear-gradient(rgba(14, 10, 24, 0.82), rgba(14, 10, 24, 0.82))`
+          : null
     }
+    if (rarity === 'special') style.border = rgba(color, 0.55)
     return [rarity, style]
   })
 ) as Record<CosmeticRarity, RarityStyle>
@@ -61,12 +79,16 @@ export const RARITY_RANK: Record<CosmeticRarity, number> = {
   rare: 1,
   epic: 2,
   legendary: 3,
-  mythic: 4
+  mythic: 4,
+  special: 5
 }
 
 /** Fallback tile background when a cosmetic has no 2D preview image. */
 export function gradientFor(rarity: CosmeticRarity): string {
   const { color } = RARITY_PALETTE[rarity]
+  if (rarity === 'special') {
+    return `linear-gradient(145deg, ${rgba(color, 0.55)} 0%, ${rgba(SPECIAL_SECOND, 0.4)} 55%, rgba(7, 9, 15, 0.9) 100%)`
+  }
   return `linear-gradient(145deg, ${rgba(color, 0.55)} 0%, ${rgba(color, 0.18)} 55%, rgba(7, 9, 15, 0.9) 100%)`
 }
 
@@ -93,13 +115,27 @@ export const TYPE_HINTS: Partial<Record<CosmeticType, string>> = {
   bundle: 'Several cosmetics sold together'
 }
 
-/** Bundles are not a wardrobe tab: they show as a featured card above the grid. */
-export type TypeFilter = 'all' | Exclude<CosmeticType, 'bundle'>
+/**
+ * Wardrobe tabs: All, Special (every item of the special rarity: event items such as Halloween),
+ * then one per type. Bundles are not a tab: they show as featured cards above the grid.
+ */
+export type TypeFilter = 'all' | 'special' | Exclude<CosmeticType, 'bundle'>
 
 export const TYPE_FILTERS: readonly TypeFilter[] = [
   'all',
+  'special',
   ...COSMETIC_TYPES.filter((t): t is Exclude<CosmeticType, 'bundle'> => t !== 'bundle')
 ]
+
+export function typeFilterLabel(filter: TypeFilter): string {
+  return filter === 'all' ? 'All' : filter === 'special' ? 'Special' : TYPE_LABELS[filter]
+}
+
+function matchesTab(c: Cosmetic, filter: TypeFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'special') return c.rarity === 'special'
+  return c.type === filter
+}
 
 /** The slot an item is worn in; null for emotes (a list) and bundles (bought, never worn). */
 export function slotOf(type: CosmeticType): CosmeticSlot | null {
@@ -214,7 +250,7 @@ export function filterCosmetics(
   const needle = filters.query.trim().toLowerCase()
   return all
     .filter((c) => !isBundle(c))
-    .filter((c) => filters.type === 'all' || c.type === filters.type)
+    .filter((c) => matchesTab(c, filters.type))
     .filter((c) => filters.rarities.length === 0 || filters.rarities.includes(c.rarity))
     .filter((c) => !filters.ownedOnly || isOwned(c, owned))
     .filter((c) => needle === '' || cosmeticMatches(c, needle))
@@ -230,13 +266,15 @@ export function countByType(all: readonly Cosmetic[]): Record<TypeFilter, number
     if (c.type === 'bundle') continue
     counts.all += 1
     counts[c.type] += 1
+    if (c.rarity === 'special') counts.special += 1
   }
   return counts
 }
 
 /**
- * Bundles shown above the grid: on the All tab (or a tab for one of their items' types), matching
- * the search and rarity filters, and with "Owned only" just the complete ones.
+ * Bundles shown above the grid: every bundle on the All tab, special bundles on the Special tab,
+ * and on a type tab the bundles with an item of that type; matching the search and rarity
+ * filters, and with "Owned only" just the complete ones.
  */
 export function featuredBundles(
   all: readonly Cosmetic[],
@@ -248,7 +286,9 @@ export function featuredBundles(
   return all.filter((c) => {
     if (!isBundle(c)) return false
     const itemTypes = (c.items ?? []).map((id) => byId.get(id)?.type)
-    if (filters.type !== 'all' && !itemTypes.includes(filters.type)) return false
+    if (filters.type === 'special') {
+      if (c.rarity !== 'special') return false
+    } else if (filters.type !== 'all' && !itemTypes.includes(filters.type)) return false
     if (filters.rarities.length > 0 && !filters.rarities.includes(c.rarity)) return false
     if (filters.ownedOnly && !isOwned(c, owned)) return false
     return needle === '' || cosmeticMatches(c, needle)

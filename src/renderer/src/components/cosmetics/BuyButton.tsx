@@ -5,8 +5,13 @@ import { Tooltip } from '@/components/ui/Tooltip'
 
 /** A shop price next to the player's balance; present only while signed in to the Shard API. */
 export interface BuyOffer {
+  /** What it costs now (after any sale). */
   price: number
   tokens: number
+  /** The price before a sale, shown struck through; absent or null when not on sale. */
+  was?: number | null
+  /** "-20%" during a sale. */
+  badge?: string | null
 }
 
 export interface BuyButtonProps {
@@ -34,6 +39,11 @@ export function BuyButton({ offer, onBuy, loading, size = 'xs', fullWidth }: Buy
   return (
     <Button size={size} variant="primary" fullWidth={fullWidth} loading={loading} leftIcon={<Coins />} onClick={onBuy}>
       Buy · {offer.price}
+      {offer.was != null && (
+        <s className="ml-0.5 font-normal opacity-60" aria-label={`was ${offer.was}`}>
+          {offer.was}
+        </s>
+      )}
     </Button>
   )
 }

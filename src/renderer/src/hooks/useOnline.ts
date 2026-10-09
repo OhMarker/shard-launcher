@@ -36,3 +36,20 @@ export function useRefreshOnline() {
     onSuccess: (state) => qc.setQueryData(queryKeys.online, state)
   })
 }
+
+/**
+ * Redeems a promo code. On success the new balance and wardrobe go straight into the online state,
+ * so the Cosmetics page shows the granted items as owned. Errors stay on the mutation (shown inline).
+ */
+export function useRedeemCode() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (code: string) => invoke('online:redeem', { code }),
+    onSuccess: (result) => {
+      qc.setQueryData<OnlineState>(queryKeys.online, (prev) =>
+        prev?.status === 'ready' ? { ...prev, me: result.me } : prev
+      )
+      void qc.invalidateQueries({ queryKey: queryKeys.online })
+    }
+  })
+}

@@ -15,7 +15,9 @@ export function useGlobalEvents(): void {
     const unsubs = [
       onEvent('app:toast', (t) => useUi.getState().toast({ kind: t.kind, title: t.title, message: t.message })),
       onEvent('app:navigate', ({ page }) => {
-        if (isPage(page)) useUi.getState().navigate(page)
+        // "admin/codes" opens the Staff page on its Codes tab (see useUi pageHint).
+        const [name = '', ...rest] = page.split('/')
+        if (isPage(name)) useUi.getState().navigate(name, rest.length > 0 ? rest.join('/') : null)
       }),
       onEvent('auth:signInRequested', () => useUi.getState().setSignInOpen(true)),
       onEvent('auth:accountsChanged', (accounts) => {

@@ -11,7 +11,7 @@ vi.mock('@main/logger', () => ({
 }))
 vi.mock('@main/ipc/router', () => ({ handle: vi.fn() }))
 
-const SHOP = [{ id: 'cape-ohmarker', price: 1000 }]
+const SHOP = [{ id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }]
 const V2_URL = 'https://meta.example/cosmetics-v2.json'
 
 const entry = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
@@ -41,10 +41,10 @@ const V2 = {
   ]
 }
 const SET_SHOP = [
-  { id: 'bandana-ohmarker', price: 1000 },
-  { id: 'bundle-ohmarker', price: 2000, items: ['bandana-ohmarker', 'cape-ohmarker', 'shield-ohmarker'] },
-  { id: 'cape-ohmarker', price: 1000 },
-  { id: 'shield-ohmarker', price: 1000 }
+  { id: 'bandana-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 },
+  { id: 'bundle-ohmarker', price: 2000, basePrice: 2000, salePercent: 0, items: ['bandana-ohmarker', 'cape-ohmarker', 'shield-ohmarker'] },
+  { id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 },
+  { id: 'shield-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }
 ]
 let dir = ''
 

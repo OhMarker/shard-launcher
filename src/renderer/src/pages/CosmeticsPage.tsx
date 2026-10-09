@@ -1,12 +1,12 @@
-import { Cloud, CloudOff, Package, RefreshCw } from 'lucide-react'
+import { Cloud, CloudOff, Package, RefreshCw, Ticket } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { formatRelative } from '@shared/format'
-import { bundleState, effectiveOwned } from '@shared/online'
+import { bundleState, effectiveOwned, saleDisplay } from '@shared/online'
 import { type Cosmetic, type CosmeticsView, type ShopItem } from '@shared/types'
 import { useActiveAccount } from '@/hooks/useAccounts'
 import { readyState, useOnlineState, useRefreshOnline } from '@/hooks/useOnline'
 import { useTexture } from '@/hooks/useTexture'
-import { toast } from '@/stores/ui'
+import { navigate, toast } from '@/stores/ui'
 import { Badge, type BadgeTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { PageBody, PageHeader } from '@/components/ui/Misc'
@@ -97,16 +97,20 @@ export function CosmeticsPage() {
     return effectiveOwned(view.manifest.cosmetics, view.owned, api)
   }, [view, state])
   const shop = state?.status === 'ready' || state?.status === 'signed-out' ? state.shop : EMPTY_SHOP
-  const prices = useMemo(
-    () => new Map((online?.shop ?? []).map((item) => [item.id, item.price])),
+  const shopById = useMemo(
+    () => new Map((online?.shop ?? []).map((item) => [item.id, item])),
     [online]
   )
 
   const offerFor = (c: Cosmetic): BuyOffer | null => {
-    const price = prices.get(c.id)
-    return online && price !== undefined && !owned.includes(c.id)
-      ? { price, tokens: online.me.tokens }
-      : null
+    const item = shopById.get(c.id)
+    if (!online || !item || owned.includes(c.id)) return null
+    const sale = saleDisplay(item)
+    return { price: item.price, tokens: online.me.tokens, was: sale.was, badge: sale.badge }
+  }
+  const saleFor = (c: Cosmetic) => {
+    const item = shop.find((s) => s.id === c.id)
+    return item ? saleDisplay(item) : null
   }
 
   const bundleFor = (c: Cosmetic) => bundleState(c, owned, shop, online?.me.tokens ?? null)
@@ -252,6 +256,9 @@ export function CosmeticsPage() {
                 </span>
               </Tooltip>
             )}
+            <Button size="sm" variant="secondary" leftIcon={<Ticket />} onClick={() => navigate('codes')}>
+              Redeem code
+            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -329,6 +336,7 @@ export function CosmeticsPage() {
               onBuy={() => void startBuy(b)}
               buying={buyingId === b.id}
               onItemClick={onCardClick}
+              sale={saleFor(b)}
             />
           )}
         />

@@ -1,6 +1,7 @@
 export type CosmeticType =
   'cape' | 'cloak' | 'hat' | 'wings' | 'bandana' | 'backbling' | 'shield' | 'emote' | 'bundle'
-export type CosmeticRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
+/** `special` is for limited event items (Halloween and the like); it sorts above mythic. */
+export type CosmeticRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'special'
 export type CosmeticAvailability = 'free' | 'locked'
 
 export const COSMETIC_TYPES: readonly CosmeticType[] = [
@@ -20,7 +21,8 @@ export const COSMETIC_RARITIES: readonly CosmeticRarity[] = [
   'rare',
   'epic',
   'legendary',
-  'mythic'
+  'mythic',
+  'special'
 ]
 
 export interface Cosmetic {

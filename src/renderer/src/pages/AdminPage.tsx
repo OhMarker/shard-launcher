@@ -1,127 +1,97 @@
-import { Check, Search, ShieldCheck, Users } from 'lucide-react'
+import { LayoutDashboard, RefreshCw, ShieldCheck, Store, Ticket, UserCog, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { canEditPlayers, ROLE_LABELS, staffRoleOf } from '@shared/online'
-import { type AdminPlayer } from '@shared/types'
+import { useQueryClient } from '@tanstack/react-query'
 import { readyState, useOnlineState, useRefreshOnline } from '@/hooks/useOnline'
+import { usePageHint } from '@/stores/ui'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Input } from '@/components/ui/Input'
 import { PageBody, PageHeader } from '@/components/ui/Misc'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { ErrorCard } from '@/components/mods/ErrorCard'
+import { Tabs, type TabItem } from '@/components/ui/Tabs'
 import { OnlineEmptyState } from '@/components/online/OnlineNote'
-import { PlayerAvatar, PresenceLabel } from '@/components/online/Presence'
-import { PlayerDialog, type AdminItem } from './admin/PlayerDialog'
-import { RoleBadge } from './admin/RoleBadge'
+import { PlayerAvatar } from '@/components/online/Presence'
+import { CodesSection } from './admin/CodesSection'
+import { OverviewSection, type StaffTab } from './admin/OverviewSection'
+import { PlayersSection } from './admin/PlayersSection'
 import { ShopSection } from './admin/ShopSection'
 import { StaffSection } from './admin/StaffSection'
-import { useAdminMutations, useAdminPlayers } from './admin/useAdmin'
+import { useAdminCodes, useAdminMutations, useAdminShop } from './admin/useAdmin'
 import { useCosmeticsView } from './cosmetics/useCosmetics'
-import { useDebouncedValue } from './mods/useDebouncedValue'
 
-const COLUMNS = 'grid grid-cols-[minmax(0,1.3fr)_88px_minmax(0,1.1fr)_minmax(0,1.3fr)_92px] items-center gap-4'
-
-function PlayerRow({
-  player,
-  nameOf,
-  canEdit,
-  onManage
-}: {
-  player: AdminPlayer
-  nameOf: (id: string) => string
-  canEdit: boolean
-  onManage: () => void
-}) {
-  return (
-    <li className={`${COLUMNS} px-4 py-2.5`}>
-      <div className="flex min-w-0 items-center gap-3">
-        <PlayerAvatar name={player.name} size={32} />
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-medium text-fg">{player.name}</span>
-            <RoleBadge player={player} />
-          </div>
-          <div className="truncate font-mono text-[10.5px] text-fg-subtle">{player.uuid}</div>
-        </div>
-      </div>
-      <div className="text-sm font-semibold tabular-nums text-fg">{player.tokens}</div>
-      <PresenceLabel inGame={player.inGame} lastSeen={player.lastSeen} />
-      <div className="flex min-w-0 flex-wrap gap-1">
-        {player.owned.length === 0 ? (
-          <span className="text-xs text-fg-subtle">None</span>
-        ) : (
-          player.owned.map((id) => (
-            <Badge
-              key={id}
-              size="sm"
-              tone={player.cape === id ? 'accent' : 'neutral'}
-              icon={player.cape === id ? <Check /> : undefined}
-              title={player.cape === id ? 'Wearing it' : 'Owned'}
-            >
-              {nameOf(id)}
-            </Badge>
-          ))
-        )}
-      </div>
-      <div className="flex justify-end">
-        <Button size="xs" variant="secondary" onClick={onManage}>
-          {canEdit ? 'Manage' : 'View'}
-        </Button>
-      </div>
-    </li>
-  )
-}
+const ALL_TABS: readonly StaffTab[] = ['overview', 'players', 'shop', 'codes', 'roles']
 
 export function AdminPage() {
+  const qc = useQueryClient()
   const onlineQuery = useOnlineState()
   const refreshOnline = useRefreshOnline()
   const online = readyState(onlineQuery.data)
   const role = staffRoleOf(online?.me)
-  const isStaff = role !== null
-  // Mods may only look players up; owners and admins also change tokens, cosmetics and prices.
+  // Mods may only look players up; owners and admins also run the shop and codes.
   const canEdit = canEditPlayers(role)
-  const [query, setQuery] = useState('')
-  const q = useDebouncedValue(query.trim(), 300)
-  const playersQuery = useAdminPlayers(q, isStaff)
+  const hint = usePageHint('admin')
+  const [picked, setPicked] = useState<StaffTab | null>(() =>
+    ALL_TABS.includes(hint as StaffTab) ? (hint as StaffTab) : null
+  )
   const m = useAdminMutations(online?.me.uuid ?? null)
   const { data: catalogue } = useCosmeticsView()
-  const [manage, setManage] = useState<{ uuid: string; open: boolean } | null>(null)
+  const adminShop = useAdminShop(canEdit)
+  const codesQuery = useAdminCodes(canEdit)
 
   const names = useMemo(
     () => new Map((catalogue?.manifest.cosmetics ?? []).map((c) => [c.id, c.name])),
     [catalogue]
   )
-  const nameOf = (id: string): string => names.get(id) ?? id
   const shop = useMemo(() => online?.shop ?? [], [online])
 
-  const players = playersQuery.data ?? []
-  // Re-read the player from the latest search so the dialog reflects each change.
-  const managed = manage ? (players.find((p) => p.uuid === manage.uuid) ?? null) : null
-  const items: AdminItem[] = useMemo(() => {
-    const ids = new Set([...shop.map((s) => s.id), ...names.keys(), ...(managed?.owned ?? [])])
-    return [...ids].map((id) => ({
-      id,
-      name: names.get(id) ?? id,
-      price: shop.find((s) => s.id === id)?.price ?? null
-    }))
-  }, [shop, names, managed])
+  const tabs: TabItem<StaffTab>[] = canEdit
+    ? [
+        { value: 'overview', label: 'Overview', icon: <LayoutDashboard /> },
+        { value: 'players', label: 'Players', icon: <Users /> },
+        { value: 'shop', label: 'Shop', icon: <Store />, count: adminShop.data?.length },
+        { value: 'codes', label: 'Codes', icon: <Ticket />, count: codesQuery.data?.length },
+        { value: 'roles', label: 'Roles', icon: <UserCog /> }
+      ]
+    : [
+        { value: 'players', label: 'Players', icon: <Users /> },
+        { value: 'roles', label: 'Roles', icon: <UserCog /> }
+      ]
+  const tab = picked && tabs.some((t) => t.value === picked) ? picked : tabs[0]!.value
 
   return (
     <PageBody>
       <PageHeader
         title="Staff"
         description={
-          canEdit || !isStaff
-            ? 'Staff tools for the Shard API. Every change applies to the live player right away.'
+          canEdit || !role
+            ? 'Run Shard: players, the shop, promo codes and roles. Every change applies to live players right away.'
             : 'Staff tools for the Shard API. Mods can look players up.'
         }
         action={
-          role && (
-            <Badge tone="accent" icon={<ShieldCheck />}>
-              Signed in as {online?.me.name} · {ROLE_LABELS[role]}
-            </Badge>
+          role &&
+          online && (
+            <>
+              <div className="glass flex h-11 items-center gap-2.5 rounded-[12px] pl-1.5 pr-3.5">
+                <PlayerAvatar name={online.me.name} size={32} />
+                <span className="leading-tight">
+                  <span className="block text-sm font-semibold text-fg">{online.me.name}</span>
+                  <span className="block text-[11px] text-fg-muted">Signed in as {ROLE_LABELS[role].toLowerCase()}</span>
+                </span>
+                <Badge tone="accent" size="sm" icon={<ShieldCheck />} className="ml-1">
+                  {ROLE_LABELS[role]}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<RefreshCw />}
+                onClick={() => void qc.invalidateQueries({ queryKey: ['admin'] })}
+              >
+                Refresh
+              </Button>
+            </>
           )
         }
       />
@@ -147,77 +117,29 @@ export function AdminPage() {
             />
           </div>
         ) : (
-          <div className="space-y-6">
-            <Card padding="none" className="overflow-hidden">
-              <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-base font-semibold tracking-tight text-fg">Players</h2>
-                  <p className="text-xs text-fg-muted">
-                    Most recently in game first. Players appear once they sign in to Shard.
-                    {!canEdit && ' Mods can look players up.'}
-                  </p>
-                </div>
-                <Input
-                  leftIcon={<Search />}
-                  placeholder="Search by name"
-                  aria-label="Search players by name"
-                  value={query}
-                  maxLength={16}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-64"
-                />
-              </div>
-              <div className={`${COLUMNS} border-b border-line bg-white/2 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-fg-subtle`}>
-                <span>Player</span>
-                <span>Tokens</span>
-                <span>Status</span>
-                <span>Capes</span>
-                <span />
-              </div>
-              {playersQuery.isLoading ? (
-                <div className="space-y-3 px-4 py-3" aria-hidden>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-9 w-full" />
-                  ))}
-                </div>
-              ) : playersQuery.isError ? (
-                <ErrorCard
-                  className="m-4"
-                  error={playersQuery.error}
-                  onRetry={() => void playersQuery.refetch()}
-                  retrying={playersQuery.isFetching}
-                />
-              ) : players.length === 0 ? (
-                <EmptyState
-                  compact
-                  icon={<Users />}
-                  title={q ? 'No players match' : 'No players yet'}
-                  description={q ? `Nobody whose name contains "${q}" has signed in to Shard.` : 'Players show up here after their first Shard sign-in.'}
-                />
-              ) : (
-                <ul className="divide-y divide-line">
-                  {players.map((p) => (
-                    <PlayerRow key={p.uuid} player={p} nameOf={nameOf} canEdit={canEdit} onManage={() => setManage({ uuid: p.uuid, open: true })} />
-                  ))}
-                </ul>
-              )}
-            </Card>
+          <div className="space-y-5">
+            <Tabs<StaffTab> value={tab} onChange={setPicked} items={tabs} />
 
-            <StaffSection viewerRole={role} viewerUuid={online.me.uuid} m={m} />
-
-            {canEdit && <ShopSection shop={shop} names={names} m={m} />}
+            {tab === 'overview' && (
+              <OverviewSection shop={adminShop.data} codes={codesQuery.data} catalogue={catalogue} onOpen={setPicked} />
+            )}
+            {tab === 'players' && <PlayersSection canEdit={canEdit} names={names} shop={shop} m={m} />}
+            {tab === 'shop' && canEdit && <ShopSection shop={shop} catalogue={catalogue} m={m} />}
+            {tab === 'codes' && canEdit && (
+              <CodesSection
+                codes={codesQuery.data}
+                loading={codesQuery.isLoading}
+                error={codesQuery.isError ? codesQuery.error : null}
+                onRetry={() => void codesQuery.refetch()}
+                retrying={codesQuery.isFetching}
+                catalogue={catalogue}
+                m={m}
+              />
+            )}
+            {tab === 'roles' && <StaffSection viewerRole={role} viewerUuid={online.me.uuid} m={m} />}
           </div>
         )}
       </div>
-
-      <PlayerDialog
-        player={managed}
-        open={manage?.open ?? false}
-        onClose={() => setManage((cur) => (cur ? { ...cur, open: false } : null))}
-        items={items}
-        m={m}
-        canEdit={canEdit}
-      />
     </PageBody>
   )
 }

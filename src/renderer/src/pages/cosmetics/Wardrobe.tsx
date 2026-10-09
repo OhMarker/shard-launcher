@@ -1,5 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { Search, Sparkles } from 'lucide-react'
+import { usePageHint } from '@/stores/ui'
 import { type ReactNode, useMemo, useState } from 'react'
 import {
   COSMETIC_RARITIES,
@@ -21,14 +22,15 @@ import { ErrorCard } from '@/components/mods/ErrorCard'
 import {
   DEFAULT_FILTERS,
   RARITY_PALETTE,
+  SPECIAL_SECOND,
   TYPE_FILTERS,
-  TYPE_LABELS,
   countByType,
   featuredBundles,
   filterCosmetics,
   isEquippedIn,
   isOwned,
   toggleRarity,
+  typeFilterLabel,
   type TypeFilter,
   type WardrobeFilters
 } from './cosmetics-utils'
@@ -78,7 +80,7 @@ function RarityChip({
         active
           ? {
               color: style.color,
-              background: style.soft,
+              background: style.gradient ?? style.soft,
               borderColor: style.border,
               boxShadow: style.glow ?? undefined
             }
@@ -88,6 +90,35 @@ function RarityChip({
       <span className="size-1.5 rounded-full" style={{ background: style.color }} aria-hidden />
       {style.label}
     </button>
+  )
+}
+
+/** The Special tab's header: limited event items, in the special rarity's colours. */
+function SpecialBanner() {
+  const { color } = RARITY_PALETTE.special
+  return (
+    <div
+      className="relative flex items-center gap-3 overflow-hidden rounded-[var(--radius-lg)] border px-4 py-3"
+      style={{
+        borderColor: RARITY_PALETTE.special.border,
+        background: `linear-gradient(100deg, ${color}26 0%, ${SPECIAL_SECOND}26 100%)`,
+        boxShadow: RARITY_PALETTE.special.glow ?? undefined
+      }}
+    >
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white"
+        style={{ background: `linear-gradient(135deg, ${color}, ${SPECIAL_SECOND})` }}
+      >
+        <Sparkles className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-fg">Special items</div>
+        <p className="text-xs text-fg-muted">
+          Limited event cosmetics, like the Halloween set. They can leave the shop when the event ends; once bought,
+          they stay yours.
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -125,7 +156,11 @@ export function Wardrobe({
   buyingId,
   renderBundle
 }: WardrobeProps) {
-  const [filters, setFilters] = useState<WardrobeFilters>(DEFAULT_FILTERS)
+  // "cosmetics/special" (dev screenshot harness, or a link) opens on the Special tab.
+  const hint = usePageHint('cosmetics')
+  const [filters, setFilters] = useState<WardrobeFilters>(() =>
+    hint === 'special' ? { ...DEFAULT_FILTERS, type: 'special' } : DEFAULT_FILTERS
+  )
   const all = view?.manifest.cosmetics ?? EMPTY_COSMETICS
   const counts = useMemo(() => countByType(all), [all])
   const list = useMemo(() => filterCosmetics(all, filters, owned), [all, filters, owned])
@@ -138,7 +173,15 @@ export function Wardrobe({
     (t) => t === 'all' || counts[t] > 0
   ).map((t) => ({
     value: t,
-    label: t === 'all' ? 'All' : TYPE_LABELS[t],
+    label:
+      t === 'special' ? (
+        <span className="font-semibold" style={{ color: RARITY_PALETTE.special.color }}>
+          {typeFilterLabel(t)}
+        </span>
+      ) : (
+        typeFilterLabel(t)
+      ),
+    icon: t === 'special' ? <Sparkles style={{ color: SPECIAL_SECOND }} /> : undefined,
     count: counts[t]
   }))
   const rarities = useMemo(
@@ -150,6 +193,7 @@ export function Wardrobe({
     equipped ? isEquippedIn(c, equipped.equipped, equipped.emotes) : false
 
   const filtered = filters !== DEFAULT_FILTERS
+  const specialTab = filters.type === 'special'
 
   return (
     <div className="space-y-4">
@@ -201,6 +245,8 @@ export function Wardrobe({
           </div>
         )}
       </Card>
+
+      {specialTab && !loading && !error && <SpecialBanner />}
 
       {loading ? (
         <GridSkeleton />

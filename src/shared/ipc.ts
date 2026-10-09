@@ -2,7 +2,11 @@ import { z } from 'zod'
 import type {
   AccountSummary,
   AdminPlayer,
+  AdminShopItem,
+  AdminStats,
   FriendsView,
+  PromoCode,
+  RedeemResult,
   OnlineState,
   ShardMe,
   ShopItem,
@@ -67,6 +71,8 @@ const playerUuid = z.object({ uuid: z.string().regex(/^[0-9a-fA-F-]{32,36}$/) })
 const cosmeticId = z.string().regex(/^[A-Za-z0-9._-]{1,64}$/)
 /** An admin target: a Minecraft name or a uuid. */
 const adminPlayer = z.string().min(1).max(36)
+/** Promo codes: the API upper-cases and checks them; this only bounds the input. */
+const promoCode = z.string().trim().min(1).max(32)
 
 export const ipcInputSchemas = {
   // app
@@ -238,6 +244,7 @@ export const ipcInputSchemas = {
   // Shard API: tokens, shop, friends, admin (main process talks to the API; see shard-api/)
   'online:state': z.object({ refresh: z.boolean().optional() }),
   'online:buy': z.object({ id: cosmeticId }),
+  'online:redeem': z.object({ code: promoCode }),
   'friends:list': none,
   'friends:request': z.object({ name: minecraftName }),
   'friends:accept': playerUuid,
@@ -253,6 +260,25 @@ export const ipcInputSchemas = {
   'admin:price': z.object({ id: cosmeticId, price: z.number().int().min(0).max(1_000_000).nullable() }),
   'admin:staff': none,
   'admin:role': z.object({ player: adminPlayer, role: z.enum(['admin', 'mod']).nullable() }),
+  'admin:shop': none,
+  'admin:shopUpdate': z.object({
+    id: cosmeticId,
+    hidden: z.boolean().optional(),
+    salePercent: z.number().int().min(0).max(90).optional()
+  }),
+  'admin:stats': none,
+  'admin:codes': none,
+  'admin:codeSave': z.object({
+    code: promoCode,
+    tokens: z.number().int().min(0).max(1_000_000),
+    items: z.array(cosmeticId).max(20),
+    maxUses: z.number().int().min(1).max(1_000_000).nullable(),
+    expiresAt: z.number().int().min(0).nullable(),
+    active: z.boolean(),
+    note: z.string().max(200)
+  }),
+  'admin:codeReset': z.object({ code: promoCode }),
+  'admin:codeDelete': z.object({ code: promoCode }),
 
   // shard client
   'shard:manifest': z.object({ refresh: z.boolean().optional() }),
@@ -373,6 +399,7 @@ export interface IpcOutputs {
 
   'online:state': OnlineState
   'online:buy': ShardMe
+  'online:redeem': RedeemResult
   'friends:list': FriendsView
   'friends:request': FriendsView
   'friends:accept': FriendsView
@@ -385,6 +412,13 @@ export interface IpcOutputs {
   'admin:price': ShopItem[]
   'admin:staff': AdminPlayer[]
   'admin:role': AdminPlayer
+  'admin:shop': AdminShopItem[]
+  'admin:shopUpdate': AdminShopItem[]
+  'admin:stats': AdminStats
+  'admin:codes': PromoCode[]
+  'admin:codeSave': PromoCode
+  'admin:codeReset': PromoCode
+  'admin:codeDelete': { deleted: string }
 
   'shard:manifest': ShardManifestView
   'shard:buildFor': ShardBuild | null

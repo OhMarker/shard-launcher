@@ -27,9 +27,67 @@ export interface ShardMe {
 
 export interface ShopItem {
   id: string
+  /** What it costs now, after any sale. */
   price: number
+  /** The price before the sale; equal to `price` when there is no sale (and for older APIs). */
+  basePrice: number
+  /** 0 to 90; 0 when not on sale (and for older APIs). */
+  salePercent: number
   /** Bundles: the ids it gives. The bundle always costs `price` and gives whatever is missing. */
   items?: string[]
+}
+
+/** `GET /v1/admin/shop`: every shop item, hidden ones too, with how many were bought. */
+export interface AdminShopItem extends ShopItem {
+  hidden: boolean
+  sold: number
+}
+
+/** `GET /v1/admin/stats`. */
+export interface AdminStats {
+  players: number
+  inGameNow: number
+  activeToday: number
+  tokensHeld: number
+  purchases: number
+  codeRedemptions: number
+  staff: number
+}
+
+/** A promo code as staff see it (`GET /v1/admin/codes`). */
+export interface PromoCode {
+  /** Upper case; 3 to 32 letters, digits, - or _. */
+  code: string
+  tokens: number
+  items: string[]
+  /** Uses allowed per round; null for unlimited. */
+  maxUses: number | null
+  /** Epoch milliseconds, or null for never. */
+  expiresAt: number | null
+  /** Each player may redeem once per round; Reset starts the next round. */
+  round: number
+  active: boolean
+  note: string
+  usesThisRound: number
+  usesTotal: number
+  createdAt: number | null
+}
+
+/** `POST /v1/admin/codes` body (create or update). */
+export interface PromoCodeInput {
+  code: string
+  tokens: number
+  items: string[]
+  maxUses: number | null
+  expiresAt: number | null
+  active: boolean
+  note: string
+}
+
+/** `POST /v1/redeem`: what the code gave and the player afterwards. */
+export interface RedeemResult {
+  granted: { tokens: number; items: string[] }
+  me: ShardMe
 }
 
 export interface FriendPerson {

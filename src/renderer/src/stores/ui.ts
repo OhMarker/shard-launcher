@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 
 export type Page =
@@ -6,13 +7,14 @@ export type Page =
   | 'mods'
   | 'skins'
   | 'cosmetics'
+  | 'codes'
   | 'friends'
   | 'updates'
   | 'settings'
   | 'admin'
 
 /** Sidebar order. Admin is listed only for Shard admins. */
-export const PAGES: Page[] = ['home', 'versions', 'mods', 'skins', 'cosmetics', 'friends', 'updates', 'settings', 'admin']
+export const PAGES: Page[] = ['home', 'versions', 'mods', 'skins', 'cosmetics', 'codes', 'friends', 'updates', 'settings', 'admin']
 
 export function isPage(value: string): value is Page {
   return (PAGES as string[]).includes(value)
@@ -40,6 +42,12 @@ export interface ToastInput {
 
 interface UiState {
   page: Page
+  /**
+   * A tab or value for the page just opened ("special" on Cosmetics, "codes" on Staff, a code on
+   * Codes). Set by `navigate(page, hint)` (the dev screenshot harness sends "admin/codes"); the
+   * page reads it once when it opens (usePageHint) and clears it.
+   */
+  pageHint: string | null
   /** Which instance the Mods tab and the Home launch button operate on. */
   selectedInstanceId: string | null
   toasts: Toast[]
@@ -48,7 +56,8 @@ interface UiState {
   whatsNewOpen: boolean
   /** App-level sign-in dialog, opened when the running game asks to add an account. */
   signInOpen: boolean
-  navigate: (page: Page) => void
+  navigate: (page: Page, hint?: string | null) => void
+  clearPageHint: () => void
   selectInstance: (id: string | null) => void
   toast: (input: ToastInput) => string
   dismissToast: (id: string) => void
@@ -62,13 +71,15 @@ let toastCounter = 0
 
 export const useUi = create<UiState>((set) => ({
   page: 'home',
+  pageHint: null,
   selectedInstanceId: null,
   toasts: [],
   consoleOpen: false,
   modrinthDrawerOpen: false,
   whatsNewOpen: false,
   signInOpen: false,
-  navigate: (page) => set({ page }),
+  navigate: (page, hint = null) => set({ page, pageHint: hint }),
+  clearPageHint: () => set({ pageHint: null }),
   selectInstance: (id) => set({ selectedInstanceId: id }),
   toast: (input) => {
     const id = `t${++toastCounter}`
@@ -93,4 +104,16 @@ export const useUi = create<UiState>((set) => ({
 
 /** Convenience for non-React code. */
 export const toast = (input: ToastInput): string => useUi.getState().toast(input)
-export const navigate = (page: Page): void => useUi.getState().navigate(page)
+export const navigate = (page: Page, hint?: string | null): void => useUi.getState().navigate(page, hint)
+
+/** The hint this page was opened with (read once on mount, then cleared). */
+export function usePageHint(page: Page): string | null {
+  const [hint] = useState(() => {
+    const { page: current, pageHint } = useUi.getState()
+    return current === page ? pageHint : null
+  })
+  useEffect(() => {
+    if (hint !== null) useUi.getState().clearPageHint()
+  }, [hint])
+  return hint
+}

@@ -9,6 +9,7 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import { BuyButton, type BuyOffer } from './BuyButton'
 import { CosmeticTile } from './CosmeticTile'
 import { RarityBadge } from './RarityBadge'
+import { SaleTag } from './SaleTag'
 import { TypeIcon } from './TypeIcon'
 
 export interface CosmeticCardProps {
@@ -111,6 +112,7 @@ export function CosmeticCard({
               </span>
             )}
           </div>
+          {locked && offer?.badge && <SaleTag badge={offer.badge} className="absolute bottom-2 left-2" />}
           {cosmetic.description && (
             <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-2.5 pt-8 text-xs leading-snug text-fg opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
               {cosmetic.description}
@@ -136,6 +138,7 @@ export function CosmeticCard({
             )}
             {locked && offer && (
               <Badge size="sm" tone="warning" icon={<Coins />}>
+                {offer.was != null && <s className="text-fg-subtle">{offer.was}</s>}
                 {offer.price}
               </Badge>
             )}

@@ -99,7 +99,7 @@ describe('effectiveOwned', () => {
   })
 
   it('with the API, shop items are owned only when the API says so', () => {
-    const shop = [{ id: 'cape-ohmarker', price: 1000 }, { id: 'old-unlock', price: 50 }]
+    const shop = [{ id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }, { id: 'old-unlock', price: 50, basePrice: 50, salePercent: 0 }]
     expect(effectiveOwned(catalogue, local, { owned: [], shop })).toEqual(['free-cape'])
     expect(effectiveOwned(catalogue, local, { owned: ['cape-ohmarker'], shop })).toEqual(['cape-ohmarker', 'free-cape'])
   })

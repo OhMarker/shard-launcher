@@ -5,7 +5,14 @@
  */
 import { ShardError, type ShardErrorCode } from './errors'
 import { type Cosmetic, type OnlineSlot, ONLINE_SLOTS } from './types/cosmetics'
-import { type Friend, type ShardMe, type ShopItem, type StaffRole } from './types/online'
+import {
+  type Friend,
+  type PromoCode,
+  type PromoCodeInput,
+  type ShardMe,
+  type ShopItem,
+  type StaffRole
+} from './types/online'
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
@@ -279,3 +286,185 @@ export function rolesYouCanAssign(
 }
 
 export const ROLE_LABELS: Record<StaffRole, string> = { owner: 'Owner', admin: 'Admin', mod: 'Mod' }
+
+// ---------------------------------------------------------------------------
+// Sales (shop items carry basePrice and salePercent; shard-api/API.md "Shop items")
+// ---------------------------------------------------------------------------
+
+export const MAX_SALE_PERCENT = 90
+
+/** The API's rounding: price after a sale of `percent` (clamped to 0..90), whole tokens. */
+export function salePrice(basePrice: number, percent: number): number {
+  const safe = Number.isFinite(percent) ? percent : 0
+  const pct = Math.max(0, Math.min(MAX_SALE_PERCENT, Math.round(safe)))
+  return Math.round((basePrice * (100 - pct)) / 100)
+}
+
+export interface SaleDisplay {
+  /** What it costs now. */
+  price: number
+  /** The struck-through price; null when not on sale. */
+  was: number | null
+  /** "-20%"; null when not on sale. */
+  badge: string | null
+}
+
+/** How a price shows on a card: the price, plus the old price and a "-N%" badge during a sale. */
+export function saleDisplay(
+  item: Pick<ShopItem, 'price'> & Partial<Pick<ShopItem, 'basePrice' | 'salePercent'>>
+): SaleDisplay {
+  const base = item.basePrice ?? item.price
+  const pct = item.salePercent ?? 0
+  if (pct <= 0 || base <= item.price) return { price: item.price, was: null, badge: null }
+  return { price: item.price, was: base, badge: `-${Math.round(pct)}%` }
+}
+
+// ---------------------------------------------------------------------------
+// Promo codes (POST /v1/redeem and the staff Codes tab)
+// ---------------------------------------------------------------------------
+
+/** Codes are 3 to 32 letters, digits, - or _, compared in upper case (the API's rule). */
+export function normalizePromoCode(raw: string): string | null {
+  const code = raw.trim().toUpperCase()
+  return /^[A-Z0-9_-]{3,32}$/.test(code) ? code : null
+}
+
+const REDEEM_MESSAGES: Record<number, string> = {
+  404: 'That code does not exist.',
+  409: 'You already used this code.',
+  410: 'That code has expired.',
+  429: 'That code has been used up.'
+}
+
+/**
+ * The message shown under the Redeem box. The API's own message wins (it is written for players);
+ * otherwise a readable line per status (404 unknown, 409 used, 410 expired, 429 used up).
+ */
+export function redeemErrorMessage(err: unknown): string {
+  const e = ShardError.from(err)
+  const status = (e.details as { status?: unknown } | undefined)?.status
+  const fallback = typeof status === 'number' ? REDEEM_MESSAGES[status] : undefined
+  if (e.code === 'SHARD_API_UNAVAILABLE' || e.code === 'OFFLINE' || e.code === 'TIMEOUT') {
+    return 'Could not reach the Shard server. Check your connection and try again.'
+  }
+  if (e.code === 'ACCOUNT_REQUIRED') return 'Sign in with your Microsoft account to redeem codes.'
+  const message = e.message.trim()
+  const generic = message === '' || /HTTP \d+|refused the request/.test(message)
+  if (fallback && generic) return fallback
+  if (message === '') return 'Could not redeem that code.'
+  return /[.!?]$/.test(message) ? message : `${message}.`
+}
+
+/** The staff code form as typed (strings, so half-typed numbers are kept). */
+export interface CodeDraft {
+  code: string
+  tokens: string
+  items: string[]
+  /** Empty for unlimited. */
+  maxUses: string
+  /** `<input type="datetime-local">` value (local time), empty for never. */
+  expiresAt: string
+  active: boolean
+  note: string
+}
+
+export const EMPTY_CODE_DRAFT: CodeDraft = {
+  code: '',
+  tokens: '0',
+  items: [],
+  maxUses: '',
+  expiresAt: '',
+  active: true,
+  note: ''
+}
+
+export type CodeDraftErrors = Partial<
+  Record<'code' | 'tokens' | 'items' | 'maxUses' | 'expiresAt' | 'note', string>
+>
+
+const pad = (n: number): string => String(n).padStart(2, '0')
+
+/** Epoch ms -> `datetime-local` value in local time ("2026-10-31T23:59"). */
+export function toDateTimeLocal(ms: number | null): string {
+  if (ms === null || !Number.isFinite(ms)) return ''
+  const d = new Date(ms)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** `datetime-local` value -> epoch ms (local time); null when empty or not a date. */
+export function fromDateTimeLocal(value: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim())
+  if (!m) return null
+  const [y, mo, d, h, mi, s] = m.slice(1).map((part) => (part === undefined ? 0 : Number(part)))
+  const date = new Date(y ?? 0, (mo ?? 1) - 1, d ?? 1, h ?? 0, mi ?? 0, s ?? 0)
+  if (Number.isNaN(date.getTime()) || date.getMonth() !== (mo ?? 1) - 1) return null
+  return date.getTime()
+}
+
+/** The form for an existing code (Edit). */
+export function draftFromCode(code: PromoCode): CodeDraft {
+  return {
+    code: code.code,
+    tokens: String(code.tokens),
+    items: [...code.items],
+    maxUses: code.maxUses === null ? '' : String(code.maxUses),
+    expiresAt: toDateTimeLocal(code.expiresAt),
+    active: code.active,
+    note: code.note
+  }
+}
+
+/**
+ * Checks the staff code form with the API's rules and builds the request body. With `now`, a new
+ * code refuses an expiry in the past (editing an expired code may keep its date).
+ */
+export function validateCodeDraft(
+  draft: CodeDraft,
+  opts: { now?: number; editing?: boolean } = {}
+): { ok: true; input: PromoCodeInput } | { ok: false; errors: CodeDraftErrors } {
+  const errors: CodeDraftErrors = {}
+  const code = normalizePromoCode(draft.code)
+  if (!code) errors.code = '3 to 32 letters, numbers, - or _'
+  const tokensRaw = draft.tokens.trim() === '' ? '0' : draft.tokens.trim()
+  const tokens = Number(tokensRaw)
+  if (!/^\d+$/.test(tokensRaw) || tokens > 1_000_000) errors.tokens = '0 to 1,000,000'
+  const items = [...new Set(draft.items)]
+  if (items.length > 20) errors.items = 'At most 20 items'
+  else if (!errors.tokens && tokens === 0 && items.length === 0) {
+    errors.items = 'A code must give tokens or an item'
+  }
+  let maxUses: number | null = null
+  const usesRaw = draft.maxUses.trim()
+  if (usesRaw !== '') {
+    const n = Number(usesRaw)
+    if (!/^\d+$/.test(usesRaw) || n < 1 || n > 1_000_000) errors.maxUses = '1 or more, or empty for unlimited'
+    else maxUses = n
+  }
+  let expiresAt: number | null = null
+  if (draft.expiresAt.trim() !== '') {
+    expiresAt = fromDateTimeLocal(draft.expiresAt)
+    if (expiresAt === null) errors.expiresAt = 'Pick a date and time'
+    else if (!opts.editing && opts.now !== undefined && expiresAt <= opts.now) {
+      errors.expiresAt = 'That time has already passed'
+    }
+  }
+  if (draft.note.length > 200) errors.note = 'At most 200 characters'
+  if (!code || Object.keys(errors).length > 0) return { ok: false, errors }
+  return {
+    ok: true,
+    input: { code, tokens, items, maxUses, expiresAt, active: draft.active, note: draft.note.trim() }
+  }
+}
+
+export type CodeStatus = 'active' | 'off' | 'expired' | 'used-up'
+
+/** One word for a code's state in the staff list. */
+export function codeStatus(
+  code: Pick<PromoCode, 'active' | 'expiresAt' | 'maxUses' | 'usesThisRound'>,
+  now: number
+): CodeStatus {
+  if (!code.active) return 'off'
+  if (code.expiresAt !== null && now >= code.expiresAt) return 'expired'
+  if (code.maxUses !== null && code.usesThisRound >= code.maxUses) return 'used-up'
+  return 'active'
+}

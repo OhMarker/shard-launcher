@@ -9,6 +9,11 @@ import type {
   AccountBridgeInfo,
   AccountSummary,
   AdminPlayer,
+  AdminShopItem,
+  AdminStats,
+  PromoCode,
+  PromoCodeInput,
+  RedeemResult,
   FriendsView,
   OnlineState,
   ShardMe,
@@ -259,6 +264,15 @@ export interface ShardApiService {
   adminPrice(id: string, price: number | null): Promise<ShopItem[]>
   adminStaff(): Promise<AdminPlayer[]>
   adminRole(player: string, role: 'admin' | 'mod' | null): Promise<AdminPlayer>
+  /** `POST /v1/redeem`: what the code gave and the player afterwards. */
+  redeem(code: string): Promise<RedeemResult>
+  adminShop(): Promise<AdminShopItem[]>
+  adminShopUpdate(id: string, patch: { hidden?: boolean; salePercent?: number }): Promise<AdminShopItem[]>
+  adminStats(): Promise<AdminStats>
+  adminCodes(): Promise<PromoCode[]>
+  adminCodeSave(input: PromoCodeInput): Promise<PromoCode>
+  adminCodeReset(code: string): Promise<PromoCode>
+  adminCodeDelete(code: string): Promise<{ deleted: string }>
 }
 
 export interface SkinService {

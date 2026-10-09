@@ -2,6 +2,35 @@
 
 Last updated 2026-10-09.
 
+## 0.6.0: Halloween drop, promo codes, sales, Staff panel (2026-10-09)
+- New rarity `special` (event items; orange-to-purple badge with a glow, sorts above mythic) in the
+  catalogue types, so cosmetics-v2.json entries with it parse (unknown rarities are still skipped
+  per entry). Cosmetics has a **Special** tab (banner + the special items) and shows a featured card
+  for every bundle: All shows the OhMarker Set and the Halloween Set, Special shows the Halloween
+  Set, a type tab shows bundles with an item of that type.
+- Sales: shop items carry `basePrice`/`salePercent` (older APIs: no sale). Cards, Buy buttons and
+  bundle cards show the struck-through old price and a "-20%" tag. Header button "Redeem code".
+- New sidebar page **Codes** (`pages/CodesPage.tsx`): redeem box, the API's refusal as a readable
+  line (404/409/410/429, `redeemErrorMessage`), success card with +tokens and the granted items
+  (previews, rarity); the balance and ownership update straight away.
+- Staff page has tabs Overview / Players / Shop / Codes / Roles (mods: Players and Roles).
+  Overview: 8 stat cards (`/v1/admin/stats` + live codes), best sellers, live codes. Shop: preview,
+  base price, sale % with the live final price, shown/hidden switch, sold count, bundle contents,
+  filters (on sale, hidden, bundles); an API without `/v1/admin/shop` falls back to prices only.
+  Codes: list (status, gives, uses this round / max with a bar, total, round, expiry, on/off,
+  note), create/edit dialog (item picker with previews, max uses, local date-time expiry, note,
+  active), Reset and Delete with confirms. Pure rules in src/shared/online.ts (`validateCodeDraft`,
+  `saleDisplay`, `codeStatus`...), IPC `online:redeem`, `admin:shop|shopUpdate|stats|codes|
+  codeSave|codeReset|codeDelete`.
+- Dev harness: `SHARD_SMOKE_PAGE` takes `page/hint` (`cosmetics/special`, `admin/codes`,
+  `codes/HALLOWEEN` redeems that code once) via `useUi.pageHint`.
+- Verified: typecheck, lint, 377 Vitest tests (tests/halloween-codes.test.ts); screenshots
+  `docs-screens/0.6.0/` (cosmetics-*, codes-*, staff-*) against the local API (dev auth, fake
+  accounts PumpkinPvP/SpookyAce/GhostlyGamer, OhMarkerr) and the local v2 catalogue over http.
+  Test sales, a hidden item and two test codes were set for the shots and removed afterwards.
+  Not tried by clicking: the code form dialog, reset/delete, sale/hide saves (the API calls are
+  unit-tested; the harness cannot click).
+
 ## 0.5.0: the OhMarker set (2026-10-09)
 - Cosmetics shop sells the owner's set: `cape-ohmarker`, `shield-ohmarker` (new type `shield`: a
   skin for the shield the player holds), `bandana-ohmarker`, 1000 tokens each, and

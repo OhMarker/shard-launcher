@@ -118,7 +118,7 @@ describe('Shard API service', () => {
   it('signs in through Mojang and never sends the Minecraft token to Shard', async () => {
     const calls = stubFetch(baseRoutes())
     const state = await createShardApiService(context()).state()
-    expect(state).toEqual({ status: 'ready', me, shop: [{ id: 'cape-ohmarker', price: 1000 }] })
+    expect(state).toEqual({ status: 'ready', me, shop: [{ id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }] })
 
     const cert = calls.find((c) => c.url.includes('api.minecraftservices.com/player/certificates'))
     expect(cert?.headers.Authorization).toBe(`Bearer ${ACCESS_TOKEN}`)
@@ -187,7 +187,7 @@ describe('Shard API service', () => {
     stubFetch(baseRoutes())
     expect(await createShardApiService(context({ signedIn: false })).state({ refresh: true })).toEqual({
       status: 'signed-out',
-      shop: [{ id: 'cape-ohmarker', price: 1000 }]
+      shop: [{ id: 'cape-ohmarker', price: 1000, basePrice: 1000, salePercent: 0 }]
     })
   })
 

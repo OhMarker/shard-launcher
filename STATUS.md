@@ -110,7 +110,7 @@ Last updated 2026-10-08.
 ## Owner-only steps
 None open. Done by the owner: `MSA_CLIENT_ID` secret, tag `v0.1.0`, GitHub Pages enabled
 (2026-10-07); creating the shard-client and meta repositories and their first releases
-(2026-10-08). Creating releases from Claude's sandbox worked for client v0.4.0; creating public
+(2026-10-08). Creating releases from the automation sandbox worked for client v0.4.0; creating public
 repositories and writing repo secrets were refused earlier, so those stay with the owner.
 
 ## Releasing the next launcher version
@@ -122,8 +122,8 @@ repositories and writing repo secrets were refused earlier, so those stay with t
    `gh workflow run release.yml -f tag=v<version> -f platform=<windows|macos|linux>`.
 
 ## Gotchas
-- This machine's Claude sandbox virtualizes %APPDATA%: files it writes there land in
-  AppData\Local\Packages\Claude_...\LocalCache and the user's apps cannot see them. Use the
+- This machine's automation sandbox virtualizes %APPDATA%: files it writes there land in
+  AppData\Local\Packages\<host>\LocalCache and the user's apps cannot see them. Use the
   Desktop (C:\Users\OhMar\OneDrive\Desktop) or project folders for anything the user must pick up.
 - Verification hooks: `SHARD_SMOKE_SCREENSHOT`, `SHARD_SMOKE_INSTALL/LAUNCH`, `SHARD_DATA_DIR`
   (see DECISIONS.md). Use `SHARD_DATA_DIR` outside AppData when running Fabric smoke tests from

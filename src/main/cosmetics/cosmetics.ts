@@ -165,7 +165,13 @@ export function createCosmeticsService(ctx: AppContext): CosmeticsService {
         readOwned(),
         readEquipped(),
         collectDataUrls(
-          manifest.cosmetics.filter((cosmetic) => CAPE_LAYOUT_TYPES.has(cosmetic.type)),
+          // Capes for the model's back, shields and bandanas for the 3D preview's hand and head.
+          manifest.cosmetics.filter(
+            (cosmetic) =>
+              CAPE_LAYOUT_TYPES.has(cosmetic.type) ||
+              cosmetic.type === 'shield' ||
+              cosmetic.type === 'bandana'
+          ),
           'texture'
         ),
         collectDataUrls(

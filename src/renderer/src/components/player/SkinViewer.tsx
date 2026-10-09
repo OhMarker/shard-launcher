@@ -7,6 +7,13 @@ import {
   type PlayerAnimation
 } from 'skinview3d'
 import { cn } from '@/lib/cn'
+import {
+  applyCosmeticTexture,
+  createBandana,
+  createShield,
+  loadImage,
+  type CosmeticMesh
+} from './cosmetic-objects'
 
 export type ViewerAnimation = 'idle' | 'walk' | 'run' | 'none'
 
@@ -17,6 +24,12 @@ export interface SkinViewerProps {
   capeUrl?: string | null
   model?: 'classic' | 'slim' | 'auto'
   back?: 'cape' | 'elytra'
+  /** Shield skin (vanilla 64x64 shield layout or a multiple of it), held in the off hand. */
+  shieldUrl?: string | null
+  /** Bandana art (square), worn on the head. */
+  bandanaUrl?: string | null
+  /** A shield or bandana texture could not be loaded (the caller can fall back to a 2D picture). */
+  onCosmeticError?: (slot: 'shield' | 'bandana') => void
   animation?: ViewerAnimation
   autoRotate?: boolean
   autoRotateSpeed?: number
@@ -40,6 +53,16 @@ function makeAnimation(kind: ViewerAnimation): PlayerAnimation | null {
       return null
   }
 }
+
+/**
+ * Screenshot aid: RENDERER_VITE_VIEWER_ANGLE (degrees, set at build time) turns the camera around
+ * the model (180 shows the back) and stops auto-rotation. Release builds never set it.
+ */
+const FIXED_ANGLE = ((): number | null => {
+  const raw = import.meta.env.RENDERER_VITE_VIEWER_ANGLE as string | undefined
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) ? n : null
+})()
 
 // three.js filter constants (three is skinview3d's dependency, not ours).
 const LINEAR_FILTER = 1006
@@ -70,6 +93,9 @@ export function SkinViewer({
   capeUrl = null,
   model = 'auto',
   back = 'cape',
+  shieldUrl = null,
+  bandanaUrl = null,
+  onCosmeticError,
   animation = 'idle',
   autoRotate = true,
   autoRotateSpeed = 0.6,
@@ -83,9 +109,13 @@ export function SkinViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewerRef = useRef<Skinview3d | null>(null)
   const readyRef = useRef(onReady)
+  const errorRef = useRef(onCosmeticError)
+  const bandanaRef = useRef<CosmeticMesh | null>(null)
+  const shieldRef = useRef<CosmeticMesh | null>(null)
   useEffect(() => {
     readyRef.current = onReady
-  }, [onReady])
+    errorRef.current = onCosmeticError
+  }, [onReady, onCosmeticError])
 
   // Create once.
   useEffect(() => {
@@ -111,6 +141,17 @@ export function SkinViewer({
     viewer.cameraLight.intensity = 1.0
     viewer.camera.position.set(14, 6, 34)
     viewer.controls.target.set(0, 0, 0)
+    if (FIXED_ANGLE !== null) {
+      const r = Math.hypot(14, 34)
+      const a = Math.atan2(14, 34) + (FIXED_ANGLE * Math.PI) / 180
+      viewer.camera.position.set(r * Math.sin(a), 6, r * Math.cos(a))
+    }
+    const bandana = createBandana()
+    const shield = createShield()
+    viewer.playerObject.skin.head.add(bandana.mesh)
+    viewer.playerObject.skin.leftArm.add(shield.mesh)
+    bandanaRef.current = bandana
+    shieldRef.current = shield
     viewerRef.current = viewer
 
     const ro = new ResizeObserver(() => {
@@ -130,6 +171,10 @@ export function SkinViewer({
     return () => {
       ro.disconnect()
       document.removeEventListener('visibilitychange', onVisibility)
+      bandana.dispose()
+      shield.dispose()
+      bandanaRef.current = null
+      shieldRef.current = null
       viewer.dispose()
       viewerRef.current = null
     }
@@ -140,7 +185,7 @@ export function SkinViewer({
   useEffect(() => {
     const viewer = viewerRef.current
     if (!viewer) return
-    viewer.autoRotate = autoRotate
+    viewer.autoRotate = autoRotate && FIXED_ANGLE === null
     viewer.autoRotateSpeed = autoRotateSpeed
   }, [autoRotate, autoRotateSpeed])
 
@@ -202,11 +247,50 @@ export function SkinViewer({
     }
   }, [capeUrl, back])
 
+  useCosmeticTexture(viewerRef, bandanaRef, bandanaUrl, () => errorRef.current?.('bandana'))
+  useCosmeticTexture(viewerRef, shieldRef, shieldUrl, () => errorRef.current?.('shield'))
+
   return (
     <div ref={containerRef} className={cn('relative h-full w-full', className)}>
       <canvas ref={canvasRef} className="block h-full w-full outline-none" tabIndex={-1} />
     </div>
   )
+}
+
+/** Loads `url` onto a bandana/shield mesh; null hides it. */
+function useCosmeticTexture(
+  viewerRef: { current: Skinview3d | null },
+  meshRef: { current: CosmeticMesh | null },
+  url: string | null,
+  onError: () => void
+): void {
+  const errorRef = useRef(onError)
+  useEffect(() => {
+    errorRef.current = onError
+  }, [onError])
+  useEffect(() => {
+    const viewer = viewerRef.current
+    const target = meshRef.current
+    if (!viewer || !target) return
+    const anisotropy = viewer.renderer.capabilities.getMaxAnisotropy()
+    if (!url) {
+      applyCosmeticTexture(target, null, anisotropy)
+      return
+    }
+    let cancelled = false
+    loadImage(url)
+      .then((image) => {
+        if (!cancelled) applyCosmeticTexture(target, image, anisotropy)
+      })
+      .catch(() => {
+        if (cancelled) return
+        applyCosmeticTexture(target, null, anisotropy)
+        errorRef.current()
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [viewerRef, meshRef, url])
 }
 
 let placeholder: HTMLCanvasElement | null = null

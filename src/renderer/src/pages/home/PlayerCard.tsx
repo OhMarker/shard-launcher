@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { Tabs } from '@/components/ui/Tabs'
 import { SkinViewer } from '@/components/player/SkinViewer'
 import { useSettingsUpdate } from '@/pages/settings/useSettingsUpdate'
+import { useCosmeticsView } from '@/pages/cosmetics/useCosmetics'
 
 const ANIMATIONS: ReadonlyArray<{ value: ModelAnimation; label: string; icon: JSX.Element }> = [
   { value: 'idle', label: 'Idle', icon: <PersonStanding /> },
@@ -36,6 +37,12 @@ export function PlayerCard({ onSignIn, className }: { onSignIn: () => void; clas
   const model = activeSkin ? (activeSkin.variant === 'SLIM' ? 'slim' : 'classic') : (account?.skinVariant ?? 'auto')
 
   const skin = useTexture(skinUrl)
+  // Shard shield skin and bandana, as equipped on the Cosmetics page.
+  const { data: cosmetics } = useCosmeticsView()
+  const worn = (slot: 'shield' | 'bandana'): string | null => {
+    const id = account ? (cosmetics?.equipped.equipped[slot] ?? null) : null
+    return id ? (cosmetics?.textures[id] ?? null) : null
+  }
   const cape = useTexture(capeUrl)
   const loadingSkin = skinUrl !== null && skin.isLoading
 
@@ -57,6 +64,8 @@ export function PlayerCard({ onSignIn, className }: { onSignIn: () => void; clas
         <SkinViewer
           skinUrl={skin.data ?? null}
           capeUrl={cape.data ?? null}
+          shieldUrl={worn('shield')}
+          bandanaUrl={worn('bandana')}
           model={model}
           back={viewer.back}
           animation={viewer.animation}

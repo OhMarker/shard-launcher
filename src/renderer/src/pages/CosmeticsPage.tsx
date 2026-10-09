@@ -133,9 +133,18 @@ export function CosmeticsPage() {
   const previewItem = previewId ? (byId.get(previewId) ?? null) : null
   const backItem = previewItem && isBackSlot(previewItem.type) ? previewItem : null
 
+  // While a shield or bandana is previewed the model keeps wearing the equipped cape.
+  const wornBack =
+    backItem ?? (previewItem && equippedBack ? (byId.get(equippedBack) ?? null) : null)
+
   const skin = useTexture(account?.skinUrl)
-  const mojangCape = useTexture(backItem ? null : account?.capeUrl)
-  const capeUrl = backItem ? (view?.textures[backItem.id] ?? null) : (mojangCape.data ?? null)
+  const mojangCape = useTexture(wornBack ? null : account?.capeUrl)
+  const capeUrl = wornBack ? (view?.textures[wornBack.id] ?? null) : (mojangCape.data ?? null)
+  // Shield (off hand) and bandana (head): the previewed one replaces the equipped one.
+  const modelTexture = (slot: 'shield' | 'bandana'): string | null => {
+    const id = previewItem?.type === slot ? previewItem.id : (equippedMap[slot] ?? null)
+    return id ? (view?.textures[id] ?? null) : null
+  }
 
   const isEquipped = (c: Cosmetic): boolean => isEquippedIn(c, equippedMap, emotes)
 
@@ -274,7 +283,9 @@ export function CosmeticsPage() {
           className="sticky top-0"
           skinUrl={skin.data ?? null}
           capeUrl={capeUrl}
-          back={backEquipment(backItem?.type ?? null)}
+          shieldUrl={modelTexture('shield')}
+          bandanaUrl={modelTexture('bandana')}
+          back={backEquipment(wornBack?.type ?? null)}
           model={account?.skinVariant ?? 'auto'}
           signedIn={account !== null}
           preview={preview}

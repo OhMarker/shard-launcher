@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Lock, PartyPopper, X } from 'lucide-react'
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   COSMETIC_TYPES,
   type Cosmetic,
@@ -29,8 +29,9 @@ export interface PreviewState {
   /** True when the preview came from hover/selection rather than the equipped item. */
   clearable: boolean
   /**
-   * 2D preview image for items the 3D model does not show (shield skins, bandanas, hats); it is
-   * drawn over the viewer. Null for capes, cloaks and wings, which the model wears.
+   * 2D preview image for items that are not capes (shield skins, bandanas, hats). It is drawn
+   * over the viewer only when the model cannot wear the item (hats, or a shield/bandana texture
+   * that failed to load). Null for capes, cloaks and wings.
    */
   imageUrl: string | null
 }
@@ -38,6 +39,9 @@ export interface PreviewState {
 export interface CosmeticPreviewCardProps {
   skinUrl: string | null
   capeUrl: string | null
+  /** Shield and bandana textures the model wears (equipped, or the one being previewed). */
+  shieldUrl?: string | null
+  bandanaUrl?: string | null
   back: 'cape' | 'elytra'
   model: 'classic' | 'slim' | 'auto'
   signedIn: boolean
@@ -97,6 +101,8 @@ function Chip({
 export function CosmeticPreviewCard({
   skinUrl,
   capeUrl,
+  shieldUrl = null,
+  bandanaUrl = null,
   back,
   model,
   signedIn,
@@ -114,6 +120,15 @@ export function CosmeticPreviewCard({
   loading,
   className
 }: CosmeticPreviewCardProps) {
+  // Textures the 3D model could not load; their items fall back to the 2D picture.
+  const [failed, setFailed] = useState<{ shield?: string | null; bandana?: string | null }>({})
+  const modelWears = (type: string): boolean =>
+    type === 'shield'
+      ? !!shieldUrl && failed.shield !== shieldUrl
+      : type === 'bandana'
+        ? !!bandanaUrl && failed.bandana !== bandanaUrl
+        : false
+  const flatImage = preview?.imageUrl && !modelWears(preview.cosmetic.type) ? preview.imageUrl : null
   const slotRows = panelSlots.map((slot) => {
     const id = equipped?.equipped[slot] ?? null
     return { slot, id, name: id ? (byId.get(id)?.name ?? id) : null }
@@ -133,6 +148,11 @@ export function CosmeticPreviewCard({
         <SkinViewer
           skinUrl={skinUrl}
           capeUrl={capeUrl}
+          shieldUrl={shieldUrl}
+          bandanaUrl={bandanaUrl}
+          onCosmeticError={(slot) =>
+            setFailed((cur) => ({ ...cur, [slot]: slot === 'shield' ? shieldUrl : bandanaUrl }))
+          }
           model={model}
           back={back}
           animation="idle"
@@ -146,7 +166,7 @@ export function CosmeticPreviewCard({
           </div>
         )}
         <AnimatePresence>
-          {preview?.imageUrl && (
+          {preview && flatImage && (
             <motion.div
               key={`image:${preview.cosmetic.id}`}
               initial={{ opacity: 0, scale: 0.94 }}
@@ -156,7 +176,7 @@ export function CosmeticPreviewCard({
               className="glass-strong pointer-events-none absolute right-3 top-3 w-[150px] overflow-hidden rounded-[14px] p-1.5"
             >
               <img
-                src={preview.imageUrl}
+                src={flatImage}
                 alt=""
                 draggable={false}
                 className="aspect-square w-full rounded-[10px] object-cover"

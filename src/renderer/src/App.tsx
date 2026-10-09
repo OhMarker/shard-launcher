@@ -23,6 +23,7 @@ import { AdminPage } from '@/pages/AdminPage'
 import { UpdatesPage } from '@/pages/UpdatesPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { WhatsNewDialog } from '@/pages/updates/WhatsNewDialog'
+import { SignInDialog } from '@/components/auth/SignInDialog'
 
 const PAGE_COMPONENTS: Record<Page, () => JSX.Element> = {
   home: HomePage,
@@ -34,6 +35,13 @@ const PAGE_COMPONENTS: Record<Page, () => JSX.Element> = {
   updates: UpdatesPage,
   settings: SettingsPage,
   admin: AdminPage
+}
+
+/** Sign-in requested from inside the game through the account bridge. */
+function RequestedSignIn() {
+  const open = useUi((s) => s.signInOpen)
+  const setOpen = useUi((s) => s.setSignInOpen)
+  return <SignInDialog open={open} onClose={() => setOpen(false)} />
 }
 
 function Shell() {
@@ -57,6 +65,7 @@ function Shell() {
       <ToastViewport />
       <ConfirmHost />
       <WhatsNewDialog />
+      <RequestedSignIn />
     </div>
   )
 }

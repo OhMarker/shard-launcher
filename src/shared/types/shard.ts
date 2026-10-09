@@ -25,6 +25,14 @@ export interface ShardManifestView {
   error: string | null
 }
 
+/** Loopback account switching bridge for the running game (shard-client docs/ACCOUNT-SWITCH-API.md). */
+export interface AccountBridgeInfo {
+  /** `http://127.0.0.1:<port>` */
+  url: string
+  /** 64 hex chars; sent as `Authorization: Bearer <secret>`. */
+  secret: string
+}
+
 /** Written to <instance>/launcher-info.json before every launch. See CONTRACT.md. */
 export interface LauncherInfo {
   schemaVersion: 1
@@ -41,5 +49,7 @@ export interface LauncherInfo {
   equippedPath: string
   /** Absolute path to the shared config folder, or null when disabled for this instance. */
   sharedConfigPath: string | null
+  /** Present only while the launcher serves the account bridge for this launch (Shard instances). */
+  accountBridge?: AccountBridgeInfo
   writtenAt: string
 }

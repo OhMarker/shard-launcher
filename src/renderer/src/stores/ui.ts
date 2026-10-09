@@ -46,6 +46,8 @@ interface UiState {
   consoleOpen: boolean
   modrinthDrawerOpen: boolean
   whatsNewOpen: boolean
+  /** App-level sign-in dialog, opened when the running game asks to add an account. */
+  signInOpen: boolean
   navigate: (page: Page) => void
   selectInstance: (id: string | null) => void
   toast: (input: ToastInput) => string
@@ -53,6 +55,7 @@ interface UiState {
   setConsoleOpen: (open: boolean) => void
   setModrinthDrawerOpen: (open: boolean) => void
   setWhatsNewOpen: (open: boolean) => void
+  setSignInOpen: (open: boolean) => void
 }
 
 let toastCounter = 0
@@ -64,6 +67,7 @@ export const useUi = create<UiState>((set) => ({
   consoleOpen: false,
   modrinthDrawerOpen: false,
   whatsNewOpen: false,
+  signInOpen: false,
   navigate: (page) => set({ page }),
   selectInstance: (id) => set({ selectedInstanceId: id }),
   toast: (input) => {
@@ -83,7 +87,8 @@ export const useUi = create<UiState>((set) => ({
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   setConsoleOpen: (open) => set({ consoleOpen: open }),
   setModrinthDrawerOpen: (open) => set({ modrinthDrawerOpen: open }),
-  setWhatsNewOpen: (open) => set({ whatsNewOpen: open })
+  setWhatsNewOpen: (open) => set({ whatsNewOpen: open }),
+  setSignInOpen: (open) => set({ signInOpen: open })
 }))
 
 /** Convenience for non-React code. */

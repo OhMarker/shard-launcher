@@ -6,6 +6,7 @@ import { useIsShardAdmin } from '@/hooks/useOnline'
 import { invoke, queryKeys } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { useUi, type Page } from '@/stores/ui'
+import { CreditsFooter } from '@/components/brand/Credits'
 import { AccountChip } from './AccountChip'
 
 const NAV: Array<{ page: Page; label: string; icon: ReactNode }> = [
@@ -92,6 +93,7 @@ export function Sidebar() {
       </nav>
       <div className="mt-auto pt-3">
         <AccountChip />
+        <CreditsFooter />
       </div>
     </aside>
   )

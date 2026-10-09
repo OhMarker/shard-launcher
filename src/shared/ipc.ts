@@ -420,6 +420,8 @@ export interface IpcEvents {
   'auth:accountsChanged': AccountSummary[]
   'auth:deviceCode': DeviceCodeInfo
   'auth:loginProgress': LoginProgress
+  /** The running game asked to add an account (account bridge): open the sign-in dialog. */
+  'auth:signInRequested': Record<string, never>
   'instances:changed': InstanceSummary[]
   'launch:progress': LaunchProgress
   'launch:console': { instanceId: string; lines: ConsoleLine[] }
@@ -442,6 +444,7 @@ export const IPC_EVENTS: readonly IpcEventName[] = [
   'auth:accountsChanged',
   'auth:deviceCode',
   'auth:loginProgress',
+  'auth:signInRequested',
   'instances:changed',
   'launch:progress',
   'launch:console',

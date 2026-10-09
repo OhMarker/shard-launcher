@@ -6,6 +6,8 @@ import { formatMemory } from '@shared/format'
 import { useSystemInfo } from '@/hooks/useSystemInfo'
 import { errorMessage, errorTitle, invoke, openExternal } from '@/lib/api'
 import { useUi } from '@/stores/ui'
+import { LicenseLink } from '@/components/brand/Credits'
+import { CREDIT_LINE, LICENSE_NAME } from '@/lib/credits'
 import { ShardMark } from '@/components/brand/Logo'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -82,6 +84,9 @@ export function AboutSection() {
             Report an issue
           </Button>
         </div>
+      </SettingRow>
+      <SettingRow label="Credits" description={CREDIT_LINE}>
+        <LicenseLink label={`View ${LICENSE_NAME}`} className="text-[13px] text-fg-subtle" />
       </SettingRow>
       <SettingRow label="Reset launcher" description="Wipe settings, accounts and caches and start over.">
         <Button size="sm" variant="danger" leftIcon={<RotateCcw />} onClick={() => void onReset()} loading={reset.isPending}>

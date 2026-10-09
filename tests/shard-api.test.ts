@@ -18,7 +18,7 @@ const UUID = '4a5e875e479a43f1bfc16c6bd326643d'
 const ACCESS_TOKEN = 'minecraft-access-token-secret'
 const SERVER_ID = 'ab'.repeat(16)
 
-const me = { uuid: UUID, name: 'OhMarkerr', tokens: 1200, owned: [], cape: null, admin: false, inGame: false, secondsToNextTokens: 420 }
+const me = { uuid: UUID, name: 'OhMarkerr', tokens: 1200, owned: [], cape: null, admin: false, role: null, inGame: false, secondsToNextTokens: 420 }
 
 let dir = ''
 beforeAll(async () => {
@@ -150,6 +150,22 @@ describe('Shard API service', () => {
     expect(verifies).toBe(2)
     const meRequests = calls.filter((c) => c.url.endsWith('/v1/me'))
     expect(meRequests.map((c) => c.headers.Authorization)).toEqual(['Bearer shard-session-1', 'Bearer shard-session-2'])
+  })
+
+  it('lists staff and sets roles through the admin endpoints', async () => {
+    const mod = { uuid: 'c'.repeat(32), name: 'Bob', tokens: 5, owned: [], cape: null, admin: false, role: 'mod', lastSeen: null }
+    const calls = stubFetch({
+      ...baseRoutes(),
+      [`GET ${API}/v1/admin/staff`]: () => json({ staff: [{ ...mod }, { ...mod, uuid: UUID, name: 'OhMarkerr', admin: true, role: 'owner' }] }),
+      [`POST ${API}/v1/admin/role`]: () => json({ ...mod, role: null })
+    })
+    const api = createShardApiService(context())
+    const staff = await api.adminStaff()
+    expect(staff.map((p) => p.role)).toEqual(['mod', 'owner'])
+    await expect(api.adminRole('Bob', null)).resolves.toMatchObject({ name: 'Bob', role: null })
+    const roleCall = calls.find((c) => c.url === `${API}/v1/admin/role`)
+    expect(JSON.parse(roleCall?.body ?? '{}')).toEqual({ player: 'Bob', role: null })
+    expect(roleCall?.headers.authorization ?? roleCall?.headers.Authorization).toBe('Bearer shard-session-1')
   })
 
   it('maps API errors to ShardErrors with the API message', async () => {

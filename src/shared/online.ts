@@ -5,7 +5,7 @@
  */
 import { ShardError, type ShardErrorCode } from './errors'
 import { type Cosmetic } from './types/cosmetics'
-import { type Friend, type ShopItem } from './types/online'
+import { type Friend, type ShopItem, type StaffRole } from './types/online'
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
@@ -134,3 +134,46 @@ export function parseFakeAccount(raw: string | undefined): { username: string; u
   const uuid = id.replace(/-/g, '').toLowerCase()
   return /^[0-9a-f]{32}$/.test(uuid) ? { username: name, uuid } : null
 }
+
+// ---------------------------------------------------------------------------
+// Staff roles (see shard-api/API.md "Roles")
+// ---------------------------------------------------------------------------
+
+/** A role the launcher can give or take: admin, mod, or none (null). Owners are set on the server. */
+export type AssignableRole = 'admin' | 'mod' | null
+
+/**
+ * The staff role of a player from the API. Older APIs send only `admin`, which then reads as admin
+ * (they had no mods).
+ */
+export function staffRoleOf(player: { admin: boolean; role?: StaffRole | null } | null | undefined): StaffRole | null {
+  if (!player) return null
+  return player.role ?? (player.admin ? 'admin' : null)
+}
+
+/** Owners and admins may change tokens, cosmetics and prices; mods may only look players up. */
+export function canEditPlayers(role: StaffRole | null): boolean {
+  return role === 'owner' || role === 'admin'
+}
+
+/**
+ * Roles the viewer may set on `target`, including null (no role), other than the role it has now.
+ * Owners give admin or mod to anyone but an owner; admins give or take mod from mods and players
+ * (not admins); mods give nothing. Nobody changes an owner or their own role. Empty means no control.
+ */
+export function rolesYouCanAssign(
+  viewerRole: StaffRole | null,
+  viewerUuid: string | null,
+  target: { uuid: string; admin: boolean; role?: StaffRole | null }
+): AssignableRole[] {
+  const current = staffRoleOf(target)
+  if (viewerUuid !== null && target.uuid === viewerUuid) return []
+  if (current === 'owner') return []
+  let allowed: AssignableRole[]
+  if (viewerRole === 'owner') allowed = ['admin', 'mod', null]
+  else if (viewerRole === 'admin') allowed = current === 'admin' ? [] : ['mod', null]
+  else return []
+  return allowed.includes(current as AssignableRole) ? allowed.filter((r) => r !== current) : []
+}
+
+export const ROLE_LABELS: Record<StaffRole, string> = { owner: 'Owner', admin: 'Admin', mod: 'Mod' }

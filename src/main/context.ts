@@ -255,6 +255,8 @@ export interface ShardApiService {
   adminGrant(player: string, id: string): Promise<AdminPlayer>
   adminRevoke(player: string, id: string): Promise<AdminPlayer>
   adminPrice(id: string, price: number | null): Promise<ShopItem[]>
+  adminStaff(): Promise<AdminPlayer[]>
+  adminRole(player: string, role: 'admin' | 'mod' | null): Promise<AdminPlayer>
 }
 
 export interface SkinService {

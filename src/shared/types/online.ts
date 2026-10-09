@@ -1,5 +1,11 @@
 /** Shard API (online features): tokens, shop, friends and admin tools. See CONTRACT.md. */
 
+/**
+ * Staff role from the Shard API. Owners are the uuids in `ADMIN_UUIDS`; admins and mods are set by
+ * staff. Mods may only look players up. null for everyone else (and for older APIs).
+ */
+export type StaffRole = 'owner' | 'admin' | 'mod'
+
 /** The signed-in player as the Shard API sees them. UUIDs are lower-case without dashes. */
 export interface ShardMe {
   uuid: string
@@ -9,7 +15,9 @@ export interface ShardMe {
   owned: string[]
   /** Equipped cape id, shown to every Shard player. */
   cape: string | null
+  /** True for owners and admins (kept for older APIs; prefer `role`). */
   admin: boolean
+  role?: StaffRole | null
   inGame: boolean
   /** Seconds of active play left until the next +10 tokens. */
   secondsToNextTokens: number
@@ -45,6 +53,7 @@ export interface AdminPlayer {
   owned: string[]
   cape: string | null
   admin: boolean
+  role?: StaffRole | null
   inGame: boolean
   lastSeen: number | null
 }

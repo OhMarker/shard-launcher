@@ -17,6 +17,7 @@ import { apiError, isUnavailableError, parseFakeAccount, validateApiBase } from 
 import {
   AdminPlayerSchema,
   AdminPlayersResponseSchema,
+  AdminStaffResponseSchema,
   ChallengeResponseSchema,
   FriendsViewSchema,
   ServicesJsonSchema,
@@ -323,7 +324,12 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
       const { items } = await authed('POST', '/v1/admin/price', ShopResponseSchema, { id, price })
       shopMemo = { items, at: Date.now() }
       return items
-    }
+    },
+    async adminStaff() {
+      const { staff } = await authed('GET', '/v1/admin/staff', AdminStaffResponseSchema)
+      return staff
+    },
+    adminRole: (player, role) => authed('POST', '/v1/admin/role', AdminPlayerSchema, { player, role })
   }
   return service
 }
@@ -342,4 +348,6 @@ export function registerShardApiIpc(ctx: AppContext): void {
   handle('admin:grant', ({ player, id }) => api().adminGrant(player, id))
   handle('admin:revoke', ({ player, id }) => api().adminRevoke(player, id))
   handle('admin:price', ({ id, price }) => api().adminPrice(id, price))
+  handle('admin:staff', () => api().adminStaff())
+  handle('admin:role', ({ player, role }) => api().adminRole(player, role))
 }

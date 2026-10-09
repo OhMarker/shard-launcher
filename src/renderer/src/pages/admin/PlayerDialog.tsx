@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { InlineCode } from '@/components/ui/Misc'
 import { confirm } from '@/components/ui/confirm'
 import { PlayerAvatar, PresenceLabel } from '@/components/online/Presence'
+import { RoleBadge } from './RoleBadge'
 import { type AdminMutations } from './useAdmin'
 
 export interface AdminItem {
@@ -24,6 +25,8 @@ export interface PlayerDialogProps {
   onClose: () => void
   items: readonly AdminItem[]
   m: AdminMutations
+  /** False for mods: they see the player but every write control is hidden. */
+  canEdit: boolean
 }
 
 const MAX_AMOUNT = 1_000_000
@@ -78,7 +81,7 @@ function TokensForm({ player, m }: { player: AdminPlayer; m: AdminMutations }) {
 }
 
 /** Tokens and ownership for one player. */
-export function PlayerDialog({ player, open, onClose, items, m }: PlayerDialogProps) {
+export function PlayerDialog({ player, open, onClose, items, m, canEdit }: PlayerDialogProps) {
   const revoke = async (p: AdminPlayer, item: AdminItem): Promise<void> => {
     const ok = await confirm({
       title: `Revoke ${item.name} from ${p.name}?`,
@@ -115,11 +118,7 @@ export function PlayerDialog({ player, open, onClose, items, m }: PlayerDialogPr
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-sm font-medium text-fg">
                 {player.name}
-                {player.admin && (
-                  <Badge size="sm" tone="accent">
-                    Admin
-                  </Badge>
-                )}
+                <RoleBadge player={player} />
               </div>
               <PresenceLabel inGame={player.inGame} lastSeen={player.lastSeen} className="mt-0.5" />
             </div>
@@ -129,10 +128,14 @@ export function PlayerDialog({ player, open, onClose, items, m }: PlayerDialogPr
             </div>
           </div>
 
-          <section className="space-y-2">
-            <div className="text-[13px] font-medium text-fg">Give or take tokens</div>
-            <TokensForm key={player.uuid} player={player} m={m} />
-          </section>
+          {canEdit ? (
+            <section className="space-y-2">
+              <div className="text-[13px] font-medium text-fg">Give or take tokens</div>
+              <TokensForm key={player.uuid} player={player} m={m} />
+            </section>
+          ) : (
+            <p className="text-xs text-fg-muted">Mods can look players up. Owners and admins change tokens and cosmetics.</p>
+          )}
 
           <section className="space-y-2">
             <div className="text-[13px] font-medium text-fg">Cosmetics</div>
@@ -162,7 +165,7 @@ export function PlayerDialog({ player, open, onClose, items, m }: PlayerDialogPr
                         {item.id} · {item.price === null ? 'not in the shop' : `${item.price} tokens`}
                       </div>
                     </div>
-                    {owns ? (
+                    {!canEdit ? null : owns ? (
                       <Button
                         size="xs"
                         variant="danger"

@@ -251,6 +251,8 @@ export const ipcInputSchemas = {
   'admin:grant': z.object({ player: adminPlayer, id: cosmeticId }),
   'admin:revoke': z.object({ player: adminPlayer, id: cosmeticId }),
   'admin:price': z.object({ id: cosmeticId, price: z.number().int().min(0).max(1_000_000).nullable() }),
+  'admin:staff': none,
+  'admin:role': z.object({ player: adminPlayer, role: z.enum(['admin', 'mod']).nullable() }),
 
   // shard client
   'shard:manifest': z.object({ refresh: z.boolean().optional() }),
@@ -381,6 +383,8 @@ export interface IpcOutputs {
   'admin:grant': AdminPlayer
   'admin:revoke': AdminPlayer
   'admin:price': ShopItem[]
+  'admin:staff': AdminPlayer[]
+  'admin:role': AdminPlayer
 
   'shard:manifest': ShardManifestView
   'shard:buildFor': ShardBuild | null

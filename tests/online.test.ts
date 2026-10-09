@@ -4,15 +4,18 @@ import {
   apiError,
   apiErrorMessage,
   buyState,
+  canEditPlayers,
   effectiveOwned,
   isUnavailableError,
   isValidMinecraftName,
   minutesToNextTokens,
   parseFakeAccount,
+  rolesYouCanAssign,
   sortFriends,
+  staffRoleOf,
   validateApiBase
 } from '@shared/online'
-import { ServicesJsonSchema, ShardMeSchema } from '@shared/schemas/online'
+import { AdminPlayerSchema, ServicesJsonSchema, ShardMeSchema } from '@shared/schemas/online'
 import { type Friend } from '@shared/types'
 
 describe('validateApiBase', () => {
@@ -167,5 +170,70 @@ describe('names and the dev account', () => {
       secondsToNextTokens: 600
     })
     expect(parsed.inGame).toBe(false)
+  })
+})
+
+describe('staff roles', () => {
+  const VIEWER = 'a'.repeat(32)
+  const target = (role: 'owner' | 'admin' | 'mod' | null, uuid = 'b'.repeat(32)) => ({
+    uuid,
+    admin: role === 'owner' || role === 'admin',
+    role
+  })
+
+  it('reads the role, falling back to the admin flag for older APIs', () => {
+    expect(staffRoleOf({ admin: false, role: 'mod' })).toBe('mod')
+    expect(staffRoleOf({ admin: true, role: 'owner' })).toBe('owner')
+    expect(staffRoleOf({ admin: true })).toBe('admin')
+    expect(staffRoleOf({ admin: false, role: null })).toBeNull()
+    expect(staffRoleOf(null)).toBeNull()
+  })
+
+  it('lets only owners and admins edit players', () => {
+    expect(canEditPlayers('owner')).toBe(true)
+    expect(canEditPlayers('admin')).toBe(true)
+    expect(canEditPlayers('mod')).toBe(false)
+    expect(canEditPlayers(null)).toBe(false)
+  })
+
+  it('owners set admin, mod or none on anyone but owners', () => {
+    expect(rolesYouCanAssign('owner', VIEWER, target(null))).toEqual(['admin', 'mod'])
+    expect(rolesYouCanAssign('owner', VIEWER, target('mod'))).toEqual(['admin', null])
+    expect(rolesYouCanAssign('owner', VIEWER, target('admin'))).toEqual(['mod', null])
+    expect(rolesYouCanAssign('owner', VIEWER, target('owner'))).toEqual([])
+  })
+
+  it('admins add and remove mods only', () => {
+    expect(rolesYouCanAssign('admin', VIEWER, target(null))).toEqual(['mod'])
+    expect(rolesYouCanAssign('admin', VIEWER, target('mod'))).toEqual([null])
+    expect(rolesYouCanAssign('admin', VIEWER, target('admin'))).toEqual([])
+    expect(rolesYouCanAssign('admin', VIEWER, target('owner'))).toEqual([])
+  })
+
+  it('mods and players assign nothing', () => {
+    for (const r of [null, 'mod', 'admin'] as const) {
+      expect(rolesYouCanAssign('mod', VIEWER, target(r))).toEqual([])
+      expect(rolesYouCanAssign(null, VIEWER, target(r))).toEqual([])
+    }
+  })
+
+  it('nobody changes their own role', () => {
+    expect(rolesYouCanAssign('owner', VIEWER, target('owner', VIEWER))).toEqual([])
+    expect(rolesYouCanAssign('admin', VIEWER, target('admin', VIEWER))).toEqual([])
+  })
+
+  it('treats an older admin-only target as an admin', () => {
+    expect(rolesYouCanAssign('admin', VIEWER, { uuid: 'c'.repeat(32), admin: true })).toEqual([])
+    expect(rolesYouCanAssign('owner', VIEWER, { uuid: 'c'.repeat(32), admin: true })).toEqual(['mod', null])
+  })
+
+  it('parses role, and defaults it to null for older APIs', () => {
+    const base = { uuid: 'd'.repeat(32), name: 'Bob', tokens: 0, owned: [], cape: null, admin: false, lastSeen: null }
+    expect(AdminPlayerSchema.parse(base).role).toBeNull()
+    expect(AdminPlayerSchema.parse({ ...base, role: 'mod' }).role).toBe('mod')
+    expect(() => AdminPlayerSchema.parse({ ...base, role: 'king' })).toThrow()
+    const me = { uuid: 'd'.repeat(32), name: 'Bob', tokens: 0, owned: [], cape: null, admin: true }
+    expect(ShardMeSchema.parse(me).role).toBeNull()
+    expect(ShardMeSchema.parse({ ...me, role: 'owner' }).role).toBe('owner')
   })
 })

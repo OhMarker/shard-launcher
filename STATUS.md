@@ -2,6 +2,16 @@
 
 Last updated 2026-10-08.
 
+## 0.4.2: staff roles (2026-10-09)
+- The Shard API's roles (owner / admin / mod, shard-api/API.md "Roles") reach the launcher:
+  `role` on ShardMe/AdminPlayer (older APIs parse as null; `admin` alone reads as admin), IPC
+  `admin:staff` and `admin:role`. The sidebar entry is now "Staff" (page key `admin`) and shows for
+  any role. Mods see players read-only ("Mods can look players up"; no tokens, grant/revoke or
+  shop). A Roles section lists staff and, per `rolesYouCanAssign` in src/shared/online.ts, lets
+  owners set Admin/Mod/No role and admins set Mod/No role; removing a role confirms first; "Add
+  staff" searches players. Not tried against the live API with a mod account.
+- Verified: typecheck, lint, 323 Vitest tests. No screenshot (the harness cannot sign in to the API).
+
 ## 0.4.1: keep running while a game runs (2026-10-09)
 - The owner's first switch failed: they had one account, "Add account" got Microsoft
   `server_error`, and the launcher then went away (closed), so the game's bridge calls were

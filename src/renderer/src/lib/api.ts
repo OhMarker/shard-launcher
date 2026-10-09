@@ -75,6 +75,7 @@ export const queryKeys = {
   online: ['online'] as const,
   friends: ['friends'] as const,
   adminPlayers: (q: string) => ['admin', 'players', q] as const,
+  adminStaff: ['admin', 'staff'] as const,
   shardManifest: ['shard', 'manifest'] as const,
   updates: ['updates'] as const,
   releaseNotes: ['updates', 'notes'] as const,

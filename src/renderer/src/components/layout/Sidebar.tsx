@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Blocks, Download, House, Layers, Settings, ShieldCheck, Shirt, Sparkles, Users } from 'lucide-react'
 import { useEffect, useMemo, type ReactNode } from 'react'
-import { useIsShardAdmin } from '@/hooks/useOnline'
+import { useShardStaffRole } from '@/hooks/useOnline'
 import { invoke, queryKeys } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { useUi, type Page } from '@/stores/ui'
@@ -18,7 +18,7 @@ const NAV: Array<{ page: Page; label: string; icon: ReactNode }> = [
   { page: 'friends', label: 'Friends', icon: <Users /> },
   { page: 'updates', label: 'Updates', icon: <Download /> },
   { page: 'settings', label: 'Settings', icon: <Settings /> },
-  { page: 'admin', label: 'Admin', icon: <ShieldCheck /> }
+  { page: 'admin', label: 'Staff', icon: <ShieldCheck /> }
 ]
 
 export function Sidebar() {
@@ -30,9 +30,9 @@ export function Sidebar() {
     staleTime: 60_000
   })
   const updateReady = updateState?.status === 'available' || updateState?.status === 'downloaded'
-  // Admin appears only for Shard admins (the API says so); everyone else never sees it.
-  const isAdmin = useIsShardAdmin()
-  const nav = useMemo(() => (isAdmin ? NAV : NAV.filter((item) => item.page !== 'admin')), [isAdmin])
+  // Staff tools appear only for Shard staff (owner, admin or mod; the API says so).
+  const isStaff = useShardStaffRole() !== null
+  const nav = useMemo(() => (isStaff ? NAV : NAV.filter((item) => item.page !== 'admin')), [isStaff])
 
   // Ctrl/Cmd + 1..9 jumps between the visible pages.
   useEffect(() => {

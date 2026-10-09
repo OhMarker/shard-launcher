@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type OnlineState } from '@shared/types'
+import { staffRoleOf } from '@shared/online'
+import { type OnlineState, type StaffRole } from '@shared/types'
 import { invoke, queryKeys } from '@/lib/api'
 
 export type ReadyOnlineState = Extract<OnlineState, { status: 'ready' }>
@@ -21,10 +22,10 @@ export function readyState(state: OnlineState | undefined): ReadyOnlineState | n
   return state?.status === 'ready' ? state : null
 }
 
-/** True when the signed-in Shard player is an admin. */
-export function useIsShardAdmin(): boolean {
+/** The signed-in Shard player's staff role (owner, admin or mod), or null for everyone else. */
+export function useShardStaffRole(): StaffRole | null {
   const { data } = useOnlineState()
-  return readyState(data)?.me.admin ?? false
+  return staffRoleOf(readyState(data)?.me)
 }
 
 /** Looks for the API again right now (services.json and the session), skipping the short memo. */

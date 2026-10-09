@@ -13,6 +13,16 @@ export function useAdminPlayers(q: string, enabled: boolean) {
   })
 }
 
+/** Owners, admins and mods (mod+). */
+export function useAdminStaff(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.adminStaff,
+    queryFn: () => invoke('admin:staff'),
+    enabled,
+    staleTime: 10_000
+  })
+}
+
 /** Admin writes. Each returns the updated player (or shop), which is patched into every cached search. */
 export function useAdminMutations(selfUuid: string | null) {
   const qc = useQueryClient()
@@ -64,7 +74,20 @@ export function useAdminMutations(selfUuid: string | null) {
     onError: fail('Could not change the shop')
   })
 
-  return { tokens, grant, revoke, price }
+  // Errors show inline in the Roles section (the mutation keeps them), not as a toast.
+  const role = useMutation({
+    mutationFn: (vars: { player: string; role: 'admin' | 'mod' | null }) => invoke('admin:role', vars),
+    onSuccess: (player) => {
+      applyPlayer(player)
+      void qc.invalidateQueries({ queryKey: queryKeys.adminStaff })
+      toast({
+        kind: 'success',
+        title: player.role ? `${player.name} is now ${player.role === 'admin' ? 'an admin' : 'a mod'}` : `${player.name} has no role now`
+      })
+    }
+  })
+
+  return { tokens, grant, revoke, price, role }
 }
 
 export type AdminMutations = ReturnType<typeof useAdminMutations>

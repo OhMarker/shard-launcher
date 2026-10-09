@@ -8,6 +8,8 @@ import { z } from 'zod'
 export const ServicesJsonSchema = z.object({ api: z.string().min(1) })
 
 const uuid = z.string().regex(/^[0-9a-f]{32}$/)
+/** Older APIs send no role; they parse as null. */
+const role = z.enum(['owner', 'admin', 'mod']).nullable().optional().default(null)
 
 export const ShardMeSchema = z.object({
   uuid,
@@ -16,6 +18,7 @@ export const ShardMeSchema = z.object({
   owned: z.array(z.string()),
   cape: z.string().nullable(),
   admin: z.boolean(),
+  role,
   inGame: z.boolean().default(false),
   secondsToNextTokens: z.number().default(600)
 })
@@ -41,8 +44,10 @@ export const AdminPlayerSchema = z.object({
   owned: z.array(z.string()),
   cape: z.string().nullable(),
   admin: z.boolean(),
+  role,
   inGame: z.boolean().default(false),
   lastSeen: z.number().nullable()
 })
 
 export const AdminPlayersResponseSchema = z.object({ players: z.array(AdminPlayerSchema) })
+export const AdminStaffResponseSchema = z.object({ staff: z.array(AdminPlayerSchema) })

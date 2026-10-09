@@ -1,5 +1,6 @@
 import { Check, Search, ShieldCheck, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { canEditPlayers, ROLE_LABELS, staffRoleOf } from '@shared/online'
 import { type AdminPlayer } from '@shared/types'
 import { readyState, useOnlineState, useRefreshOnline } from '@/hooks/useOnline'
 import { Badge } from '@/components/ui/Badge'
@@ -13,7 +14,9 @@ import { ErrorCard } from '@/components/mods/ErrorCard'
 import { OnlineEmptyState } from '@/components/online/OnlineNote'
 import { PlayerAvatar, PresenceLabel } from '@/components/online/Presence'
 import { PlayerDialog, type AdminItem } from './admin/PlayerDialog'
+import { RoleBadge } from './admin/RoleBadge'
 import { ShopSection } from './admin/ShopSection'
+import { StaffSection } from './admin/StaffSection'
 import { useAdminMutations, useAdminPlayers } from './admin/useAdmin'
 import { useCosmeticsView } from './cosmetics/useCosmetics'
 import { useDebouncedValue } from './mods/useDebouncedValue'
@@ -23,10 +26,12 @@ const COLUMNS = 'grid grid-cols-[minmax(0,1.3fr)_88px_minmax(0,1.1fr)_minmax(0,1
 function PlayerRow({
   player,
   nameOf,
+  canEdit,
   onManage
 }: {
   player: AdminPlayer
   nameOf: (id: string) => string
+  canEdit: boolean
   onManage: () => void
 }) {
   return (
@@ -36,11 +41,7 @@ function PlayerRow({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-medium text-fg">{player.name}</span>
-            {player.admin && (
-              <Badge size="sm" tone="accent">
-                Admin
-              </Badge>
-            )}
+            <RoleBadge player={player} />
           </div>
           <div className="truncate font-mono text-[10.5px] text-fg-subtle">{player.uuid}</div>
         </div>
@@ -66,7 +67,7 @@ function PlayerRow({
       </div>
       <div className="flex justify-end">
         <Button size="xs" variant="secondary" onClick={onManage}>
-          Manage
+          {canEdit ? 'Manage' : 'View'}
         </Button>
       </div>
     </li>
@@ -77,10 +78,13 @@ export function AdminPage() {
   const onlineQuery = useOnlineState()
   const refreshOnline = useRefreshOnline()
   const online = readyState(onlineQuery.data)
-  const isAdmin = online?.me.admin ?? false
+  const role = staffRoleOf(online?.me)
+  const isStaff = role !== null
+  // Mods may only look players up; owners and admins also change tokens, cosmetics and prices.
+  const canEdit = canEditPlayers(role)
   const [query, setQuery] = useState('')
   const q = useDebouncedValue(query.trim(), 300)
-  const playersQuery = useAdminPlayers(q, isAdmin)
+  const playersQuery = useAdminPlayers(q, isStaff)
   const m = useAdminMutations(online?.me.uuid ?? null)
   const { data: catalogue } = useCosmeticsView()
   const [manage, setManage] = useState<{ uuid: string; open: boolean } | null>(null)
@@ -107,12 +111,16 @@ export function AdminPage() {
   return (
     <PageBody>
       <PageHeader
-        title="Admin"
-        description="Owner tools for the Shard API. Every change applies to the live player right away."
+        title="Staff"
+        description={
+          canEdit || !isStaff
+            ? 'Staff tools for the Shard API. Every change applies to the live player right away.'
+            : 'Staff tools for the Shard API. Mods can look players up.'
+        }
         action={
-          isAdmin && (
+          role && (
             <Badge tone="accent" icon={<ShieldCheck />}>
-              Signed in as {online?.me.name}
+              Signed in as {online?.me.name} · {ROLE_LABELS[role]}
             </Badge>
           )
         }
@@ -128,14 +136,14 @@ export function AdminPage() {
             state={onlineQuery.data}
             onRetry={() => refreshOnline.mutate()}
             retrying={refreshOnline.isPending}
-            signedOutHint="Sign in with the owner's Microsoft account to use the admin tools."
+            signedOutHint="Sign in with a Shard staff member's Microsoft account to use the staff tools."
           />
-        ) : !isAdmin ? (
+        ) : !role || !online ? (
           <div className="glass rounded-[var(--radius-lg)]">
             <EmptyState
               icon={<ShieldCheck />}
-              title="Admins only"
-              description="This account is not a Shard admin. The admin tools are for the Shard owner."
+              title="Staff only"
+              description="This account has no Shard staff role. The staff tools are for the owner, admins and mods."
             />
           </div>
         ) : (
@@ -144,7 +152,10 @@ export function AdminPage() {
               <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-base font-semibold tracking-tight text-fg">Players</h2>
-                  <p className="text-xs text-fg-muted">Most recently in game first. Players appear once they sign in to Shard.</p>
+                  <p className="text-xs text-fg-muted">
+                    Most recently in game first. Players appear once they sign in to Shard.
+                    {!canEdit && ' Mods can look players up.'}
+                  </p>
                 </div>
                 <Input
                   leftIcon={<Search />}
@@ -186,13 +197,15 @@ export function AdminPage() {
               ) : (
                 <ul className="divide-y divide-line">
                   {players.map((p) => (
-                    <PlayerRow key={p.uuid} player={p} nameOf={nameOf} onManage={() => setManage({ uuid: p.uuid, open: true })} />
+                    <PlayerRow key={p.uuid} player={p} nameOf={nameOf} canEdit={canEdit} onManage={() => setManage({ uuid: p.uuid, open: true })} />
                   ))}
                 </ul>
               )}
             </Card>
 
-            <ShopSection shop={shop} names={names} m={m} />
+            <StaffSection viewerRole={role} viewerUuid={online.me.uuid} m={m} />
+
+            {canEdit && <ShopSection shop={shop} names={names} m={m} />}
           </div>
         )}
       </div>
@@ -203,6 +216,7 @@ export function AdminPage() {
         onClose={() => setManage((cur) => (cur ? { ...cur, open: false } : null))}
         items={items}
         m={m}
+        canEdit={canEdit}
       />
     </PageBody>
   )

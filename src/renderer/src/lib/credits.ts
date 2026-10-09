@@ -1,6 +1,6 @@
 import licenseText from '../../../../LICENSE?raw'
 
-export const CREDIT_LINE = 'Made by OhMarker with the help of swxyzx2'
+export const CREDIT_LINE = 'Made by OhMarker with the help of SwxyzX2'
 
 export const LICENSE_TEXT = licenseText.trim()
 

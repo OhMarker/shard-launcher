@@ -140,6 +140,13 @@ function parseRedirect(url: string, expectedState: string): RedirectOutcome {
   const error = params.get('error')
   if (error) {
     if (error === 'access_denied') return { error: cancelled('Sign-in was cancelled') }
+    if (error === 'server_error' || error === 'temporarily_unavailable') {
+      return {
+        error: new ShardError('AUTH_FAILED', 'Microsoft had a temporary problem signing you in. Please try again, or use "Sign in with a code".', {
+          details: { error }
+        })
+      }
+    }
     const description = params.get('error_description')
     return {
       error: new ShardError('AUTH_FAILED', `Microsoft sign-in failed: ${description ? firstSentence(description) : error}`, {
@@ -187,6 +194,8 @@ function authorizeInWindow(ctx: AppContext, params: AuthorizeParams, signal: Abo
       signal.removeEventListener('abort', onAbort)
       session.webRequest.onBeforeRequest(null)
       if (!win.isDestroyed()) win.destroy()
+      // A failed sign-in can leave Microsoft's page in a bad state; start the next one clean.
+      if (!('code' in outcome)) void session.clearStorageData().catch(() => undefined)
       if ('code' in outcome) resolve(outcome.code)
       else reject(outcome.error)
     }

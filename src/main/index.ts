@@ -135,9 +135,13 @@ async function bootstrap(): Promise<void> {
   const createWindow = (): void => {
     mainWindow = createMainWindow(settings, isDev)
     mainWindow.on('close', (event) => {
-      if (!quitting && settings.get().closeToTray && tray) {
+      // A running Shard game talks to the launcher (in-game account switching), so while a game
+      // runs, closing the window keeps the launcher in the tray instead of quitting.
+      const gameRunning = ctx.services.launcher?.anyRunning() ?? false
+      if (!quitting && tray && (settings.get().closeToTray || gameRunning)) {
         event.preventDefault()
         mainWindow?.hide()
+        if (gameRunning && !settings.get().closeToTray) log.info('Window closed while a game runs; staying in the tray')
       }
     })
     mainWindow.on('closed', () => {
@@ -211,7 +215,8 @@ async function bootstrap(): Promise<void> {
     quitting = true
   })
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin' && !settings.get().closeToTray) app.quit()
+    const gameRunning = ctx.services.launcher?.anyRunning() ?? false
+    if (process.platform !== 'darwin' && !settings.get().closeToTray && !gameRunning) app.quit()
   })
   app.on('will-quit', (event) => {
     if (bundle) {

@@ -152,6 +152,6 @@ Running log of product and engineering decisions made while building Shard Launc
   account" raises the window and emits `auth:signInRequested`, which opens the normal sign-in
   dialog. If the server cannot start, the game launches without `accountBridge`. Nothing in the
   bridge logs headers, bodies, tokens or the secret.
-- **Credits**: "Made by OhMarker with the help of swxyzx2" and a License button at the bottom of
+- **Credits**: "Made by OhMarker with the help of SwxyzX2" and a License button at the bottom of
   the sidebar and in Settings -> About. The dialog shows the repo's `LICENSE` (MIT, added to the
   repo root to match package.json/README), bundled at build time with Vite's `?raw` import.

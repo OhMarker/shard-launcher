@@ -2,12 +2,19 @@
 
 Last updated 2026-10-08.
 
+## 0.4.1: keep running while a game runs (2026-10-09)
+- The owner's first switch failed: they had one account, "Add account" got Microsoft
+  `server_error`, and the launcher then went away (closed), so the game's bridge calls were
+  refused. Now closing the window while a game runs hides to the tray (bridge stays up), a failed
+  sign-in clears the sign-in window's storage and says to retry / use the code sign-in, and the
+  credit reads SwxyzX2.
+
 ## 0.4.0: account bridge and credits (2026-10-08)
 - While a Shard instance runs, a loopback-only account bridge (random port, per-launch secret,
   Bearer auth, Origin rejected) lets Shard Client 0.8.0 switch accounts in-game
   (`src/main/launch/account-bridge*.ts`, contract in shard-client/docs/ACCOUNT-SWITCH-API.md,
   CONTRACT.md section 5). Not yet tried with a real Microsoft account.
-- Credits "Made by OhMarker with the help of swxyzx2" + License dialog in the sidebar and
+- Credits "Made by OhMarker with the help of SwxyzX2" + License dialog in the sidebar and
   Settings → About; LICENSE (MIT) added at the repo root.
 - Verified: typecheck, lint, 314 Vitest tests; headless screenshot docs-screens/bridge-credits/.
 

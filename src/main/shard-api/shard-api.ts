@@ -13,7 +13,14 @@ import { type ZodType } from 'zod'
 import { URLS } from '@shared/constants'
 import { ShardError } from '@shared/errors'
 import { uuidWithoutDashes } from '@shared/format'
-import { apiError, isUnavailableError, parseFakeAccount, validateApiBase } from '@shared/online'
+import {
+  apiError,
+  apiSyncsSlot,
+  equipBody,
+  isUnavailableError,
+  parseFakeAccount,
+  validateApiBase
+} from '@shared/online'
 import {
   AdminPlayerSchema,
   AdminPlayersResponseSchema,
@@ -279,9 +286,9 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
       return me
     },
 
-    equip: (capeId) => authed('POST', '/v1/equip', ShardMeSchema, { cape: capeId }),
+    equip: (slot, id) => authed('POST', '/v1/equip', ShardMeSchema, equipBody(slot, id)),
 
-    async syncCape(capeId) {
+    async syncSlot(slot, id) {
       let url: string
       try {
         url = await resolveBase()
@@ -292,15 +299,16 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
         const shop = await shopAt(url)
         // Signed out: the shop's items are not owned (the API decides ownership when it is up).
         if (!identity()) return { owned: [], shop }
-        // A cape the shop does not sell is a catalogue cape: the API cannot show it, and the
-        // catalogue decides ownership. Leave the API's cape alone.
-        if (capeId !== null && !shop.some((item) => item.id === capeId)) return { owned: [], shop }
-        const me = await service.equip(capeId)
+        // An item the shop does not sell is a catalogue item: the API cannot show it, and the
+        // catalogue decides ownership. An API from before shields and bandanas sells none, and
+        // would read `{ slot, id }` as "unequip the cape", so it is left alone too.
+        if (!apiSyncsSlot(slot, id, shop)) return { owned: [], shop }
+        const me = await service.equip(slot, id)
         return { owned: me.owned, shop }
       } catch (err) {
         // Offline or a Microsoft session that needs attention: fall back to the local rules.
         if (isUnavailableError(err) || (isAuthError(err) && !isExpiredSession(err))) {
-          log.info(`Cape not synced to Shard (${ShardError.from(err).code})`)
+          log.info(`${slot} not synced to Shard (${ShardError.from(err).code})`)
           return null
         }
         throw err

@@ -230,7 +230,7 @@ export const ipcInputSchemas = {
   // cosmetics
   'cosmetics:list': z.object({ refresh: z.boolean().optional() }),
   'cosmetics:equip': z.object({
-    type: z.enum(['cape', 'cloak', 'hat', 'wings', 'bandana', 'backbling']),
+    type: z.enum(['cape', 'cloak', 'hat', 'wings', 'bandana', 'backbling', 'shield']),
     id: z.string().nullable()
   }),
   'cosmetics:toggleEmote': z.object({ id: z.string().min(1) }),

@@ -47,25 +47,61 @@ export type BundledModsManifestPayload = z.infer<typeof BundledModsManifestSchem
 // cosmetics.json
 // ---------------------------------------------------------------------------
 
-export const CosmeticSchema = z.object({
-  id: z.string().min(1),
-  type: z.enum(COSMETIC_TYPES as [string, ...string[]]),
-  name: z.string().min(1),
-  rarity: z.enum(COSMETIC_RARITIES as [string, ...string[]]),
-  textureUrl: z.string(),
-  previewUrl: z.string().nullable().default(null),
-  animated: z.boolean().default(false),
-  author: z.string().default('Shard'),
-  description: z.string().nullable().default(null),
-  availability: z.enum(['free', 'locked']).default('free'),
-  tags: z.array(z.string()).default([])
+/**
+ * One catalogue entry. `textureUrl` may be null only for bundles (they render nothing); bundles
+ * list the ids they give in `items`.
+ */
+export const CosmeticSchema = z
+  .object({
+    id: z.string().min(1),
+    type: z.enum(COSMETIC_TYPES as [string, ...string[]]),
+    name: z.string().min(1),
+    rarity: z.enum(COSMETIC_RARITIES as [string, ...string[]]),
+    textureUrl: z.string().nullable(),
+    previewUrl: z.string().nullable().default(null),
+    animated: z.boolean().default(false),
+    author: z.string().default('Shard'),
+    description: z.string().nullable().default(null),
+    availability: z.enum(['free', 'locked']).default('free'),
+    tags: z.array(z.string()).default([]),
+    items: z.array(z.string().min(1)).optional()
+  })
+  .refine((c) => c.type === 'bundle' || c.textureUrl !== null, {
+    message: 'Only bundles may have no texture',
+    path: ['textureUrl']
+  })
+  .refine((c) => c.type !== 'bundle' || (c.items?.length ?? 0) > 0, {
+    message: 'A bundle lists its items',
+    path: ['items']
+  })
+export type CosmeticPayload = z.infer<typeof CosmeticSchema>
+
+/**
+ * cosmetics.json (schemaVersion 1) and cosmetics-v2.json (2). Entries are checked one by one in
+ * parseCosmeticEntries, so a type or field this launcher does not know (added for a newer
+ * launcher) skips that entry instead of failing the whole catalogue.
+ */
+export const CosmeticsManifestSchema = z.object({
+  schemaVersion: z.number().int().min(1),
+  updatedAt: z.string(),
+  cosmetics: z.array(z.unknown())
 })
 
-export const CosmeticsManifestSchema = z.object({
-  schemaVersion: z.literal(1),
-  updatedAt: z.string(),
-  cosmetics: z.array(CosmeticSchema)
-})
+/** Valid entries in file order, first one wins for a repeated id; `skipped` counts the rest. */
+export function parseCosmeticEntries(entries: readonly unknown[]): {
+  cosmetics: CosmeticPayload[]
+  skipped: number
+} {
+  const cosmetics: CosmeticPayload[] = []
+  const seen = new Set<string>()
+  for (const entry of entries) {
+    const parsed = CosmeticSchema.safeParse(entry)
+    if (!parsed.success || seen.has(parsed.data.id)) continue
+    seen.add(parsed.data.id)
+    cosmetics.push(parsed.data)
+  }
+  return { cosmetics, skipped: entries.length - cosmetics.length }
+}
 export type CosmeticsManifestPayload = z.infer<typeof CosmeticsManifestSchema>
 
 // ---------------------------------------------------------------------------

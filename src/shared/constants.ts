@@ -49,6 +49,8 @@ export const URLS = {
   shardManifest: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/shard-manifest.json`,
   bundledMods: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/bundled-mods.json`,
   cosmetics: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/cosmetics.json`,
+  /** Since 0.5.0: shields, bandanas and bundles. cosmetics.json stays for older launchers. */
+  cosmeticsV2: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/cosmetics-v2.json`,
   /** `{ "api": "https://..." }`: where the Shard API lives, so it can move without a launcher release. */
   services: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_META_REPO}/main/services.json`,
   mojangCertificates: 'https://api.minecraftservices.com/player/certificates',

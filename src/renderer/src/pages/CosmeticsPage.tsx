@@ -1,8 +1,8 @@
 import { Cloud, CloudOff, Package, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { formatRelative } from '@shared/format'
-import { effectiveOwned } from '@shared/online'
-import { type Cosmetic, type CosmeticsView } from '@shared/types'
+import { bundleState, effectiveOwned } from '@shared/online'
+import { type Cosmetic, type CosmeticsView, type ShopItem } from '@shared/types'
 import { useActiveAccount } from '@/hooks/useAccounts'
 import { readyState, useOnlineState, useRefreshOnline } from '@/hooks/useOnline'
 import { useTexture } from '@/hooks/useTexture'
@@ -14,22 +14,28 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import { confirm } from '@/components/ui/confirm'
 import { type BuyOffer } from '@/components/cosmetics/BuyButton'
 import { OnlineNote } from '@/components/online/OnlineNote'
+import { BundleCard } from './cosmetics/BundleCard'
 import { CosmeticDetailDialog } from './cosmetics/CosmeticDetailDialog'
 import { CosmeticPreviewCard, type PreviewState } from './cosmetics/CosmeticPreviewCard'
 import { TokenBalance } from './cosmetics/TokenBalance'
 import { Wardrobe } from './cosmetics/Wardrobe'
 import {
   MAX_EMOTES,
+  PANEL_SLOTS,
   backEquipment,
+  bundleConfirmMessage,
   canToggleEmote,
+  equipAction,
   equippedBackId,
   isBackSlot,
+  isEquippedIn,
   isOwned,
   slotOf
 } from './cosmetics/cosmetics-utils'
 import { useBuyCosmetic, useCosmeticsMutations, useCosmeticsView } from './cosmetics/useCosmetics'
 
 const EMPTY_OWNED: readonly string[] = []
+const EMPTY_SHOP: readonly ShopItem[] = []
 
 /** Tokens arrive while playing; refresh the balance every minute while this page is open. */
 const ONLINE_POLL_MS = 60_000
@@ -90,19 +96,31 @@ export function CosmeticsPage() {
           : null
     return effectiveOwned(view.manifest.cosmetics, view.owned, api)
   }, [view, state])
-  const prices = useMemo(() => new Map((online?.shop ?? []).map((item) => [item.id, item.price])), [online])
+  const shop = state?.status === 'ready' || state?.status === 'signed-out' ? state.shop : EMPTY_SHOP
+  const prices = useMemo(
+    () => new Map((online?.shop ?? []).map((item) => [item.id, item.price])),
+    [online]
+  )
 
   const offerFor = (c: Cosmetic): BuyOffer | null => {
     const price = prices.get(c.id)
-    return online && price !== undefined && !owned.includes(c.id) ? { price, tokens: online.me.tokens } : null
+    return online && price !== undefined && !owned.includes(c.id)
+      ? { price, tokens: online.me.tokens }
+      : null
   }
+
+  const bundleFor = (c: Cosmetic) => bundleState(c, owned, shop, online?.me.tokens ?? null)
 
   const startBuy = async (c: Cosmetic): Promise<void> => {
     const offer = offerFor(c)
     if (!offer) return
+    const names = new Map([...byId.values()].map((x) => [x.id, x.name]))
     const ok = await confirm({
       title: `Buy ${c.name}?`,
-      message: `It costs ${offer.price} tokens. You will have ${offer.tokens - offer.price} left, and it is yours on every computer you sign in on.`,
+      message:
+        c.type === 'bundle'
+          ? `${bundleConfirmMessage(bundleFor(c), offer.tokens, names)} They are yours on every computer you sign in on.`
+          : `It costs ${offer.price} tokens. You will have ${offer.tokens - offer.price} left, and it is yours on every computer you sign in on.`,
       confirmLabel: `Buy for ${offer.price}`
     })
     if (ok) buy.mutate(c)
@@ -119,8 +137,7 @@ export function CosmeticsPage() {
   const mojangCape = useTexture(backItem ? null : account?.capeUrl)
   const capeUrl = backItem ? (view?.textures[backItem.id] ?? null) : (mojangCape.data ?? null)
 
-  const isEquipped = (c: Cosmetic): boolean =>
-    c.type === 'emote' ? emotes.includes(c.id) : equippedMap[c.type] === c.id
+  const isEquipped = (c: Cosmetic): boolean => isEquippedIn(c, equippedMap, emotes)
 
   const toggleEmote = (c: Cosmetic): void => {
     if (!isOwned(c, owned)) {
@@ -164,10 +181,12 @@ export function CosmeticsPage() {
       })
       return
     }
-    m.equip.mutate({ type: slot, id: isEquipped(c) ? null : c.id })
+    const action = equipAction(c, equippedMap)
+    if (action) m.equip.mutate({ type: action.type, id: action.id })
   }
 
   const onCardClick = (c: Cosmetic): void => {
+    if (c.type === 'bundle') return
     if (c.type === 'emote') {
       toggleEmote(c)
       return
@@ -185,15 +204,22 @@ export function CosmeticsPage() {
       ? (m.toggleEmote.variables ?? null)
       : null
 
-  const preview: PreviewState | null = backItem
+  // Items the model cannot wear (shield skins, bandanas, hats) preview as a 2D image over it.
+  const flatItem = previewItem && !backItem && slotOf(previewItem.type) ? previewItem : null
+  const previewTarget = backItem ?? flatItem
+  const preview: PreviewState | null = previewTarget
     ? {
-        cosmetic: backItem,
-        equipped: isEquipped(backItem),
-        owned: isOwned(backItem, owned),
-        offer: offerFor(backItem),
-        clearable: hoverId !== null || selectedId !== null
+        cosmetic: previewTarget,
+        equipped: isEquipped(previewTarget),
+        owned: isOwned(previewTarget, owned),
+        offer: offerFor(previewTarget),
+        clearable: hoverId !== null || selectedId !== null,
+        imageUrl: flatItem ? (view?.previews[flatItem.id] ?? null) : null
       }
     : null
+  const panelSlots = PANEL_SLOTS.filter((slot) =>
+    (view?.manifest.cosmetics ?? []).some((c) => c.type === slot)
+  )
 
   const detailCosmetic = detail ? (byId.get(detail.id) ?? null) : null
   const source = view ? SOURCE_META[view.source] : null
@@ -202,7 +228,7 @@ export function CosmeticsPage() {
     <PageBody wide>
       <PageHeader
         title="Cosmetics"
-        description="Pick what you wear. The preview shows it on your skin, and Shard Client shows your cape in-game to every Shard player."
+        description="Pick what you wear. The preview shows it on your skin, and Shard Client shows your cape, shield skin and bandana in-game to every Shard player."
         action={
           <>
             {online && <TokenBalance me={online.me} />}
@@ -239,7 +265,7 @@ export function CosmeticsPage() {
           state={onlineQuery.data}
           onRetry={() => refreshOnline.mutate()}
           retrying={refreshOnline.isPending}
-          signedOutHint="Sign in to earn tokens and buy capes"
+          signedOutHint="Sign in to earn tokens and buy cosmetics"
         />
       )}
 
@@ -252,10 +278,10 @@ export function CosmeticsPage() {
           model={account?.skinVariant ?? 'auto'}
           signedIn={account !== null}
           preview={preview}
-          pending={pendingId !== null && pendingId === backItem?.id}
-          onEquipToggle={() => backItem && equipToggle(backItem)}
-          onBuy={() => backItem && void startBuy(backItem)}
-          buying={backItem !== null && buyingId === backItem.id}
+          pending={pendingId !== null && pendingId === previewTarget?.id}
+          onEquipToggle={() => previewTarget && equipToggle(previewTarget)}
+          onBuy={() => previewTarget && void startBuy(previewTarget)}
+          buying={previewTarget !== null && buyingId === previewTarget.id}
           onClearPreview={() => {
             setHoverId(null)
             setSelectedId(null)
@@ -264,6 +290,7 @@ export function CosmeticsPage() {
           byId={byId}
           onUnequip={(slot) => m.equip.mutate({ type: slot, id: null })}
           onRemoveEmote={(id) => m.toggleEmote.mutate(id)}
+          panelSlots={panelSlots}
           loading={viewQuery.isLoading}
         />
         <Wardrobe
@@ -273,7 +300,7 @@ export function CosmeticsPage() {
           onRetry={() => void viewQuery.refetch()}
           retrying={viewQuery.isFetching}
           selectedId={selectedId}
-          onHover={(c) => setHoverId(c && isBackSlot(c.type) ? c.id : null)}
+          onHover={(c) => setHoverId(c && slotOf(c.type) ? c.id : null)}
           onCardClick={onCardClick}
           onPrimary={equipToggle}
           pendingId={pendingId}
@@ -281,6 +308,18 @@ export function CosmeticsPage() {
           offerFor={offerFor}
           onBuy={(c) => void startBuy(c)}
           buyingId={buyingId}
+          renderBundle={(b) => (
+            <BundleCard
+              bundle={b}
+              previewUrl={view?.previews[b.id] ?? null}
+              itemsById={byId}
+              state={bundleFor(b)}
+              tokens={online?.me.tokens ?? null}
+              onBuy={() => void startBuy(b)}
+              buying={buyingId === b.id}
+              onItemClick={onCardClick}
+            />
+          )}
         />
       </div>
 

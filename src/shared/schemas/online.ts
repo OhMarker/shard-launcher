@@ -17,6 +17,14 @@ export const ShardMeSchema = z.object({
   tokens: z.number().int(),
   owned: z.array(z.string()),
   cape: z.string().nullable(),
+  /** Every slot the API stores (since the OhMarker set); older APIs send only `cape`. */
+  equipped: z
+    .object({
+      cape: z.string().nullable().default(null),
+      shield: z.string().nullable().default(null),
+      bandana: z.string().nullable().default(null)
+    })
+    .optional(),
   admin: z.boolean(),
   role,
   inGame: z.boolean().default(false),
@@ -26,7 +34,12 @@ export const ShardMeSchema = z.object({
 export const VerifyResponseSchema = z.object({ session: z.string().min(1), me: ShardMeSchema })
 export const ChallengeResponseSchema = z.object({ serverId: z.string().regex(/^[0-9a-f]{32}$/) })
 
-export const ShopItemSchema = z.object({ id: z.string(), price: z.number().int() })
+/** Bundles carry the ids they give in `items`. */
+export const ShopItemSchema = z.object({
+  id: z.string(),
+  price: z.number().int(),
+  items: z.array(z.string()).optional()
+})
 export const ShopResponseSchema = z.object({ items: z.array(ShopItemSchema) })
 
 const PersonSchema = z.object({ uuid, name: z.string() })

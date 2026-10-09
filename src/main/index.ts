@@ -10,6 +10,7 @@ import { createLogger, initLogging } from './logger'
 import { setDefaultUserAgent } from './net/http'
 import { defaultDataDir, resolvePaths } from './paths'
 import { createServices, type ServiceBundle } from './services'
+import { cosmeticsV2Url } from './cosmetics/rules'
 import { runSmoke, smokeRequested } from './smoke'
 import { SettingsStore } from './store/settings'
 import { ensureDir } from './util/fs'
@@ -108,6 +109,10 @@ async function bootstrap(): Promise<void> {
         bundledMods:
           firstSet(s.bundledMods, process.env.SHARD_BUNDLED_MODS_URL, import.meta.env.SHARD_BUNDLED_MODS_URL) ?? URLS.bundledMods,
         cosmetics: firstSet(s.cosmetics, process.env.SHARD_COSMETICS_URL, import.meta.env.SHARD_COSMETICS_URL) ?? URLS.cosmetics,
+        cosmeticsV2: cosmeticsV2Url(
+          firstSet(process.env.SHARD_COSMETICS_V2_URL, import.meta.env.SHARD_COSMETICS_V2_URL) ?? null,
+          firstSet(s.cosmetics, process.env.SHARD_COSMETICS_URL, import.meta.env.SHARD_COSMETICS_URL) ?? null
+        ),
         services: firstSet(s.services, process.env.SHARD_SERVICES_URL, import.meta.env.SHARD_SERVICES_URL) ?? URLS.services
       }
     },

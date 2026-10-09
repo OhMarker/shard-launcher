@@ -8,7 +8,7 @@ import { BuyButton, type BuyOffer } from '@/components/cosmetics/BuyButton'
 import { CosmeticTile } from '@/components/cosmetics/CosmeticTile'
 import { RarityBadge } from '@/components/cosmetics/RarityBadge'
 import { TypeIcon } from '@/components/cosmetics/TypeIcon'
-import { TYPE_LABELS } from './cosmetics-utils'
+import { TYPE_HINTS, TYPE_LABELS } from './cosmetics-utils'
 
 export interface CosmeticDetailDialogProps {
   /** Kept while the dialog animates out, so `open` is separate. */
@@ -25,7 +25,7 @@ export interface CosmeticDetailDialogProps {
   buying: boolean
 }
 
-/** 2D preview for cosmetics the 3D viewer cannot show (hats, bandanas, backbling). */
+/** 2D preview for cosmetics the 3D viewer cannot show (shield skins, hats, bandanas, backbling). */
 export function CosmeticDetailDialog({
   cosmetic,
   open,
@@ -106,13 +106,16 @@ export function CosmeticDetailDialog({
               </Badge>
             ))}
           </div>
+          {TYPE_HINTS[cosmetic.type] && (
+            <p className="text-sm font-medium text-fg">{TYPE_HINTS[cosmetic.type]}.</p>
+          )}
           {cosmetic.description && (
             <p className="text-sm leading-relaxed text-fg-muted">{cosmetic.description}</p>
           )}
           <div className="flex items-start gap-2.5 rounded-[12px] border border-line bg-white/4 p-3 text-[13px] text-fg-muted">
             <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-            The 3D preview here shows capes, cloaks and wings only. Shard Client draws equipped
-            capes in-game.
+            The 3D preview shows capes, cloaks and wings only; other items show this picture. Shard
+            Client draws your equipped cape, shield skin and bandana in-game.
           </div>
         </div>
       )}

@@ -15,6 +15,8 @@ export interface ShardMe {
   owned: string[]
   /** Equipped cape id, shown to every Shard player. */
   cape: string | null
+  /** Equipped id per online slot; absent from APIs before shields and bandanas (use equippedOf). */
+  equipped?: { cape: string | null; shield: string | null; bandana: string | null }
   /** True for owners and admins (kept for older APIs; prefer `role`). */
   admin: boolean
   role?: StaffRole | null
@@ -26,6 +28,8 @@ export interface ShardMe {
 export interface ShopItem {
   id: string
   price: number
+  /** Bundles: the ids it gives. The bundle always costs `price` and gives whatever is missing. */
+  items?: string[]
 }
 
 export interface FriendPerson {

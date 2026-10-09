@@ -2,8 +2,9 @@
  * Pure cosmetics rules: ownership, equip/unequip validation, emote toggling, pruning and
  * texture URL resolution. No Electron, no file system, so Vitest can cover every branch.
  */
+import { URLS } from '@shared/constants'
 import { ShardError } from '@shared/errors'
-import { type CosmeticsManifestPayload } from '@shared/schemas/shard'
+import { parseCosmeticEntries, type CosmeticsManifestPayload } from '@shared/schemas/shard'
 import {
   COSMETIC_TYPES,
   type Cosmetic,
@@ -21,7 +22,7 @@ export const MAX_EMOTES = 8
 export const CAPE_LAYOUT_TYPES: ReadonlySet<CosmeticType> = new Set<CosmeticType>(['cape', 'cloak', 'wings'])
 
 export const COSMETIC_SLOTS: readonly CosmeticSlot[] = COSMETIC_TYPES.filter(
-  (type): type is CosmeticSlot => type !== 'emote'
+  (type): type is CosmeticSlot => type !== 'emote' && type !== 'bundle'
 )
 
 function isSlot(value: string): value is CosmeticSlot {
@@ -29,14 +30,15 @@ function isSlot(value: string): value is CosmeticSlot {
 }
 
 /**
- * The schema enums are built from COSMETIC_TYPES / COSMETIC_RARITIES, so every validated
- * string is already a member of the unions; only the static type needs narrowing.
+ * Validates each catalogue entry on its own (unknown types and broken entries are skipped; see
+ * parseCosmeticEntries). The schema enums are built from COSMETIC_TYPES / COSMETIC_RARITIES, so
+ * every validated string is already a member of the unions; only the static type needs narrowing.
  */
 export function toCosmeticsManifest(payload: CosmeticsManifestPayload): CosmeticsManifest {
   return {
     schemaVersion: payload.schemaVersion,
     updatedAt: payload.updatedAt,
-    cosmetics: payload.cosmetics.map((cosmetic) => ({
+    cosmetics: parseCosmeticEntries(payload.cosmetics).cosmetics.map((cosmetic) => ({
       ...cosmetic,
       type: cosmetic.type as CosmeticType,
       rarity: cosmetic.rarity as CosmeticRarity
@@ -203,4 +205,17 @@ export function pngDimensions(buffer: Buffer): { width: number; height: number }
   if (buffer.length < 24 || !buffer.subarray(0, 8).equals(PNG_SIGNATURE)) return null
   if (buffer.toString('latin1', 12, 16) !== 'IHDR') return null
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) }
+}
+
+const DEFAULT_V1 = /\/cosmetics\.json$/
+
+/**
+ * Where cosmetics-v2.json lives: an explicit override wins; with a custom cosmetics.json address
+ * (settings or SHARD_COSMETICS_URL) the v2 file is its sibling, or nothing when the custom address
+ * is not named cosmetics.json; otherwise the meta repository's.
+ */
+export function cosmeticsV2Url(override: string | null, customV1: string | null): string | null {
+  if (override) return override
+  if (customV1) return DEFAULT_V1.test(customV1) ? customV1.replace(DEFAULT_V1, '/cosmetics-v2.json') : null
+  return URLS.cosmeticsV2
 }

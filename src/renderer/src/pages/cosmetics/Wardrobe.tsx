@@ -1,6 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { Search, Sparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import {
   COSMETIC_RARITIES,
   type Cosmetic,
@@ -24,7 +24,9 @@ import {
   TYPE_FILTERS,
   TYPE_LABELS,
   countByType,
+  featuredBundles,
   filterCosmetics,
+  isEquippedIn,
   isOwned,
   toggleRarity,
   type TypeFilter,
@@ -47,6 +49,8 @@ export interface WardrobeProps {
   onCardClick: (cosmetic: Cosmetic) => void
   onPrimary: (cosmetic: Cosmetic) => void
   pendingId: string | null
+  /** The featured card for a bundle, shown above the grid. */
+  renderBundle: (bundle: Cosmetic) => ReactNode
 }
 
 const EMPTY_COSMETICS: readonly Cosmetic[] = []
@@ -118,12 +122,14 @@ export function Wardrobe({
   owned,
   offerFor,
   onBuy,
-  buyingId
+  buyingId,
+  renderBundle
 }: WardrobeProps) {
   const [filters, setFilters] = useState<WardrobeFilters>(DEFAULT_FILTERS)
   const all = view?.manifest.cosmetics ?? EMPTY_COSMETICS
   const counts = useMemo(() => countByType(all), [all])
   const list = useMemo(() => filterCosmetics(all, filters, owned), [all, filters, owned])
+  const bundles = useMemo(() => featuredBundles(all, filters, owned), [all, filters, owned])
   const equipped = view?.equipped
 
   // Only offer filters the catalogue can match: a type tab or rarity chip with nothing behind it
@@ -141,9 +147,7 @@ export function Wardrobe({
   )
 
   const isEquipped = (c: Cosmetic): boolean =>
-    c.type === 'emote'
-      ? (equipped?.emotes.includes(c.id) ?? false)
-      : equipped?.equipped[c.type] === c.id
+    equipped ? isEquippedIn(c, equipped.equipped, equipped.emotes) : false
 
   const filtered = filters !== DEFAULT_FILTERS
 
@@ -207,7 +211,7 @@ export function Wardrobe({
           retrying={retrying}
           offlineHint="The cosmetics catalogue needs a connection. Equipped items still load in-game."
         />
-      ) : list.length === 0 ? (
+      ) : list.length === 0 && bundles.length === 0 ? (
         <div className="glass rounded-[var(--radius-lg)]">
           <EmptyState
             icon={<Sparkles />}
@@ -228,6 +232,13 @@ export function Wardrobe({
         </div>
       ) : (
         <LayoutGroup>
+          {bundles.length > 0 && (
+            <div className="mb-3 space-y-3">
+              {bundles.map((b) => (
+                <div key={b.id}>{renderBundle(b)}</div>
+              ))}
+            </div>
+          )}
           <motion.div layout className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3">
             <AnimatePresence initial={false}>
               {list.map((c) => (

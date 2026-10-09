@@ -1,3 +1,4 @@
+import { type BundleState } from '@shared/online'
 import {
   COSMETIC_RARITIES,
   COSMETIC_TYPES,
@@ -80,16 +81,63 @@ export const TYPE_LABELS: Record<CosmeticType, string> = {
   wings: 'Wings',
   bandana: 'Bandana',
   backbling: 'Backbling',
-  emote: 'Emote'
+  shield: 'Shield',
+  emote: 'Emote',
+  bundle: 'Set'
 }
 
-export type TypeFilter = 'all' | CosmeticType
+/** One line on what an item of this type is, where the name alone does not say it. */
+export const TYPE_HINTS: Partial<Record<CosmeticType, string>> = {
+  shield: 'Shield skin — your shield in game looks like this',
+  bandana: 'Worn on your head',
+  bundle: 'Several cosmetics sold together'
+}
 
-export const TYPE_FILTERS: readonly TypeFilter[] = ['all', ...COSMETIC_TYPES]
+/** Bundles are not a wardrobe tab: they show as a featured card above the grid. */
+export type TypeFilter = 'all' | Exclude<CosmeticType, 'bundle'>
 
+export const TYPE_FILTERS: readonly TypeFilter[] = [
+  'all',
+  ...COSMETIC_TYPES.filter((t): t is Exclude<CosmeticType, 'bundle'> => t !== 'bundle')
+]
+
+/** The slot an item is worn in; null for emotes (a list) and bundles (bought, never worn). */
 export function slotOf(type: CosmeticType): CosmeticSlot | null {
-  return type === 'emote' ? null : type
+  return type === 'emote' || type === 'bundle' ? null : type
 }
+
+export function isBundle(cosmetic: Pick<Cosmetic, 'type'>): boolean {
+  return cosmetic.type === 'bundle'
+}
+
+/** Whether a cosmetic is worn/on the wheel right now. Bundles are never "equipped". */
+export function isEquippedIn(
+  cosmetic: Pick<Cosmetic, 'id' | 'type'>,
+  equipped: EquippedMap,
+  emotes: readonly string[]
+): boolean {
+  if (cosmetic.type === 'emote') return emotes.includes(cosmetic.id)
+  const slot = slotOf(cosmetic.type)
+  return slot !== null && equipped[slot] === cosmetic.id
+}
+
+/**
+ * What the Equip/Unequip button does: one item per slot, so equipping replaces whatever the slot
+ * held, and pressing it on the equipped item clears the slot. Null when the item is not worn.
+ */
+export function equipAction(
+  cosmetic: Pick<Cosmetic, 'id' | 'type'>,
+  equipped: EquippedMap
+): { type: CosmeticSlot; id: string | null; replaces: string | null } | null {
+  const slot = slotOf(cosmetic.type)
+  if (!slot) return null
+  const current = equipped[slot] ?? null
+  if (current === cosmetic.id) return { type: slot, id: null, replaces: null }
+  return { type: slot, id: cosmetic.id, replaces: current }
+}
+
+/** Slots the Equipped panel always lists (even empty) when the catalogue has something for them. */
+export const PANEL_SLOTS: readonly CosmeticSlot[] = ['cape', 'shield', 'bandana']
 
 export type BackSlot = 'cape' | 'cloak' | 'wings'
 
@@ -165,6 +213,7 @@ export function filterCosmetics(
 ): Cosmetic[] {
   const needle = filters.query.trim().toLowerCase()
   return all
+    .filter((c) => !isBundle(c))
     .filter((c) => filters.type === 'all' || c.type === filters.type)
     .filter((c) => filters.rarities.length === 0 || filters.rarities.includes(c.rarity))
     .filter((c) => !filters.ownedOnly || isOwned(c, owned))
@@ -178,10 +227,32 @@ export function filterCosmetics(
 export function countByType(all: readonly Cosmetic[]): Record<TypeFilter, number> {
   const counts = Object.fromEntries(TYPE_FILTERS.map((t) => [t, 0])) as Record<TypeFilter, number>
   for (const c of all) {
+    if (c.type === 'bundle') continue
     counts.all += 1
     counts[c.type] += 1
   }
   return counts
+}
+
+/**
+ * Bundles shown above the grid: on the All tab (or a tab for one of their items' types), matching
+ * the search and rarity filters, and with "Owned only" just the complete ones.
+ */
+export function featuredBundles(
+  all: readonly Cosmetic[],
+  filters: WardrobeFilters,
+  owned: readonly string[]
+): Cosmetic[] {
+  const needle = filters.query.trim().toLowerCase()
+  const byId = new Map(all.map((c) => [c.id, c]))
+  return all.filter((c) => {
+    if (!isBundle(c)) return false
+    const itemTypes = (c.items ?? []).map((id) => byId.get(id)?.type)
+    if (filters.type !== 'all' && !itemTypes.includes(filters.type)) return false
+    if (filters.rarities.length > 0 && !filters.rarities.includes(c.rarity)) return false
+    if (filters.ownedOnly && !isOwned(c, owned)) return false
+    return needle === '' || cosmeticMatches(c, needle)
+  })
 }
 
 export function toggleRarity(
@@ -189,4 +260,46 @@ export function toggleRarity(
   rarity: CosmeticRarity
 ): CosmeticRarity[] {
   return rarities.includes(rarity) ? rarities.filter((r) => r !== rarity) : [...rarities, rarity]
+}
+
+// ---------------------------------------------------------------------------
+// Bundle wording
+// ---------------------------------------------------------------------------
+
+const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** "OhMarker Set — 2000 tokens · save 1000"; just the name once owned or when not on sale. */
+export function bundleHeadline(name: string, state: BundleState): string {
+  if (state.complete || state.price === null) return name
+  return `${name} — ${state.price} tokens${state.saving !== null ? ` · save ${state.saving}` : ''}`
+}
+
+/** The small line next to the buy button, or null when the headline says it all. */
+export function bundleNote(state: BundleState): string | null {
+  if (state.complete) return 'You own everything in this set.'
+  const owned = state.items.length - state.missing.length
+  if (owned === 0 || state.price === null) return null
+  if (state.saving !== null)
+    return `Gives the ${plural(state.missing.length, 'item')} you are missing.`
+  if (state.missingPrice !== null && state.missingPrice < state.price) {
+    return state.missing.length === 1
+      ? `You only need 1 item; it costs ${state.missingPrice} on its own.`
+      : `The ${state.missing.length} items you need cost ${state.missingPrice} on their own.`
+  }
+  return `Same price as the ${plural(state.missing.length, 'item')} you are missing.`
+}
+
+/** The confirm dialog's message for buying a bundle. */
+export function bundleConfirmMessage(
+  state: BundleState,
+  tokens: number,
+  names: ReadonlyMap<string, string>
+): string {
+  const price = state.price ?? 0
+  const list = state.missing.map((id) => names.get(id) ?? id).join(', ')
+  let text = `It costs ${price} tokens and gives you ${list}. You will have ${tokens - price} left.`
+  if (state.missingPrice !== null && state.missingPrice < price) {
+    text += ` Buying ${state.missing.length === 1 ? 'it' : 'them'} one by one costs ${state.missingPrice}.`
+  }
+  return text
 }

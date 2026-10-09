@@ -4,8 +4,8 @@
  * covers every branch (tests/online.test.ts).
  */
 import { ShardError, type ShardErrorCode } from './errors'
-import { type Cosmetic } from './types/cosmetics'
-import { type Friend, type ShopItem, type StaffRole } from './types/online'
+import { type Cosmetic, type OnlineSlot, ONLINE_SLOTS } from './types/cosmetics'
+import { type Friend, type ShardMe, type ShopItem, type StaffRole } from './types/online'
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
@@ -103,6 +103,108 @@ export function buyState(price: number | null | undefined, tokens: number, owned
   if (price === null || price === undefined) return { kind: 'not-for-sale' }
   if (tokens < price) return { kind: 'short', price, need: price - tokens }
   return { kind: 'buy', price }
+}
+
+// ---------------------------------------------------------------------------
+// Slots and bundles (the OhMarker set; shard-api/API.md)
+// ---------------------------------------------------------------------------
+
+/** The API's slot for an id: `cape-...`, `shield-...`, `bandana-...` (its own rule), else null. */
+export function onlineSlotOf(id: string): OnlineSlot | null {
+  return ONLINE_SLOTS.find((slot) => id.startsWith(`${slot}-`)) ?? null
+}
+
+/**
+ * `POST /v1/equip` body. Capes keep the original `{ cape }` body, which every API version reads;
+ * shields and bandanas use `{ slot, id }`.
+ */
+export function equipBody(
+  slot: OnlineSlot,
+  id: string | null
+): { cape: string | null } | { slot: OnlineSlot; id: string | null } {
+  return slot === 'cape' ? { cape: id } : { slot, id }
+}
+
+/**
+ * Whether an equip change goes to the API: the shop must sell the item (a catalogue-only item
+ * stays local). Clearing a cape always goes; clearing a shield or bandana goes only when the shop
+ * sells something for that slot, because an API from before those slots would read `{ slot, id }`
+ * as clearing the cape.
+ */
+export function apiSyncsSlot(
+  slot: OnlineSlot,
+  id: string | null,
+  shop: readonly ShopItem[]
+): boolean {
+  if (id !== null) return shop.some((item) => item.id === id)
+  return slot === 'cape' || shop.some((item) => onlineSlotOf(item.id) === slot)
+}
+
+/** What the player wears per online slot; older APIs only know the cape. */
+export function equippedOf(
+  me: Pick<ShardMe, 'cape' | 'equipped'>
+): Record<OnlineSlot, string | null> {
+  return {
+    cape: me.equipped?.cape ?? me.cape,
+    shield: me.equipped?.shield ?? null,
+    bandana: me.equipped?.bandana ?? null
+  }
+}
+
+export interface BundleItemState {
+  id: string
+  owned: boolean
+  /** The item's own shop price, or null when the shop does not sell it alone. */
+  price: number | null
+}
+
+export interface BundleState {
+  items: BundleItemState[]
+  /** Ids the bundle would give now. */
+  missing: string[]
+  /** Everything in the bundle is owned (the API then also lists the bundle id). */
+  complete: boolean
+  /** The bundle's price, the same whatever is missing; null when the shop does not sell it. */
+  price: number | null
+  /** The missing items bought one by one, when each has a price. */
+  missingPrice: number | null
+  /** How much the bundle saves over buying the missing items one by one; null when it does not. */
+  saving: number | null
+  /** The buy button; null while there is no balance to compare with (signed out, no API). */
+  buy: BuyState | null
+}
+
+/**
+ * The bundle card's numbers. Items come from the catalogue entry, or else the shop's `items`;
+ * `owned` is the effective owned list; `tokens` is null when not signed in to the API.
+ */
+export function bundleState(
+  bundle: Pick<Cosmetic, 'id' | 'items'>,
+  owned: readonly string[],
+  shop: readonly ShopItem[],
+  tokens: number | null
+): BundleState {
+  const prices = new Map(shop.map((item) => [item.id, item.price]))
+  // Catalogue order (cape, shield, bandana) reads best; the shop's list when the catalogue has none.
+  const ids = bundle.items ?? shop.find((item) => item.id === bundle.id)?.items ?? []
+  const items = ids.map((id) => ({ id, owned: owned.includes(id), price: prices.get(id) ?? null }))
+  const missing = items.filter((item) => !item.owned).map((item) => item.id)
+  const complete = owned.includes(bundle.id) || (items.length > 0 && missing.length === 0)
+  const price = prices.get(bundle.id) ?? null
+  const missingItems = items.filter((item) => !item.owned)
+  const missingPrice = missingItems.every((item) => item.price !== null)
+    ? missingItems.reduce((sum, item) => sum + (item.price ?? 0), 0)
+    : null
+  const saving =
+    !complete && price !== null && missingPrice !== null && missingPrice > price
+      ? missingPrice - price
+      : null
+  const buy = complete
+    ? buyState(price, 0, true)
+    : tokens === null
+      ? null
+      : buyState(price, tokens, false)
+  return { items, missing: complete ? [] : missing, complete, price, missingPrice, saving, buy }
 }
 
 /** Whole minutes of play until the next +10 tokens (at least 1, so the hint never says "0 min"). */

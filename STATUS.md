@@ -1,6 +1,32 @@
 # Status (handoff for a new session)
 
-Last updated 2026-10-08.
+Last updated 2026-10-09.
+
+## 0.5.0: the OhMarker set (2026-10-09)
+- Cosmetics shop sells the owner's set: `cape-ohmarker`, `shield-ohmarker` (new type `shield`: a
+  skin for the shield the player holds), `bandana-ohmarker`, 1000 tokens each, and
+  `bundle-ohmarker` (new type `bundle`, `items`, `textureUrl: null`) for 2000, which gives whatever
+  is missing (prices from `GET /v1/shop`; the API answers 409 when everything is owned).
+- Catalogue: the launcher reads `cosmetics-v2.json` from meta first (`URLS.cosmeticsV2`,
+  `SHARD_COSMETICS_V2_URL`, or the sibling of a custom cosmetics.json), then `cosmetics.json`, then
+  the bundled copy. Entries are validated one by one, so unknown types/fields skip that entry
+  instead of failing the file. **`cosmetics-v2.json` and its new images are still local-only in
+  `../meta`**: until they are pushed, released launchers keep showing just the cape (from
+  cosmetics.json, which stays valid for 0.4.x and older).
+- UI: Shield and Bandana tabs; the Equipped panel lists Cape / Shield / Bandana rows with Unequip
+  (one item per slot); hovering a shield or bandana shows its 2D picture over the 3D model (the
+  model wears only capes); the set is a featured card above the grid ("OhMarker Set — 2000 tokens
+  · save 1000", the set picture, the three items with owned ticks, Buy with confirm, "Need N more",
+  "Owned"); it explains when buying the missing item alone is cheaper.
+- API: equipping a cape/shield/bandana goes to `POST /v1/equip` (capes keep `{ cape }`, others
+  `{ slot, id }`, sent only when the shop sells that slot so an older API never clears the cape);
+  `me.equipped` parsed (older APIs: cape only); equipped.json gains `shield`/`bandana` keys and
+  launch preparation caches every equipped texture, not only capes. CONTRACT.md sections 3, 4, 7.
+- Verified: typecheck, lint, 350 Vitest tests (323 before; tests/ohmarker-set.test.ts, cosmetics-online);
+  headless screenshots `docs-screens/0.5.0/` against the local API (dev auth, fake accounts) and
+  the local v2 catalogue served over http: 2500 tokens owning nothing, owning cape+shield with both
+  equipped, and the owner (everything owned). Not tried: buying through the UI (needs a click),
+  the shield detail dialog, the Shard Client side of shields/bandanas.
 
 ## 0.4.2: staff roles (2026-10-09)
 - The Shard API's roles (owner / admin / mod, shard-api/API.md "Roles") reach the launcher:

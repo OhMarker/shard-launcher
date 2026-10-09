@@ -96,6 +96,7 @@ time (so a packaged build carries them). Settings → Integrations can override 
 | `SHARD_MANIFEST_URL` | no | Hosted `shard-manifest.json` (client builds). |
 | `SHARD_BUNDLED_MODS_URL` | no | Hosted `bundled-mods.json` (overrides the shipped set). |
 | `SHARD_COSMETICS_URL` | no | Hosted `cosmetics.json`. |
+| `SHARD_COSMETICS_V2_URL` | no | Hosted `cosmetics-v2.json` (shields, bandanas, bundles; read first). Defaults to the meta repository, or the sibling of a custom `cosmetics.json`. |
 | `SHARD_SERVICES_URL` | no | Hosted `services.json` (`{ "api": "https://..." }`), where the Shard API lives. |
 | `SHARD_API_URL` | no | Development/testing: use this Shard API base URL instead of `services.json` (plain `http://127.0.0.1` is accepted only in unpackaged builds). Runtime only. |
 | `SHARD_API_DEV_AUTH` | no | `1` in an unpackaged build: sign in to a local `wrangler dev` API with `devUuid` instead of Mojang's join check. Ignored when packaged. |

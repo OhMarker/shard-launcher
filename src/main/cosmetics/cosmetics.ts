@@ -4,7 +4,15 @@ import { ShardError } from '@shared/errors'
 import { effectiveOwned } from '@shared/online'
 import { OwnedCosmeticsSchema } from '@shared/schemas/cosmetics-owned'
 import { CosmeticsManifestSchema, EquippedCosmeticsSchema } from '@shared/schemas/shard'
-import { type Cosmetic, type CosmeticsManifest, type CosmeticsView, type EquippedCosmetics } from '@shared/types'
+import {
+  ONLINE_SLOTS,
+  type Cosmetic,
+  type CosmeticSlot,
+  type CosmeticsManifest,
+  type CosmeticsView,
+  type EquippedCosmetics,
+  type OnlineSlot
+} from '@shared/types'
 import { type AppContext, type CosmeticsService } from '../context'
 import { handle } from '../ipc/router'
 import { createLogger } from '../logger'
@@ -24,6 +32,8 @@ import {
 } from './rules'
 
 const log = createLogger('cosmetics')
+
+const isOnlineSlot = (slot: CosmeticSlot): slot is OnlineSlot => (ONLINE_SLOTS as readonly string[]).includes(slot)
 
 const REMOTE_MAX_AGE_MS = 6 * 60 * 60_000
 /** How long the in-memory manifest is reused before the on-disk cache / network is consulted again. */
@@ -50,6 +60,7 @@ export function createCosmeticsService(ctx: AppContext): CosmeticsService {
   const assets = new CosmeticAssets(ctx)
   let loaded: LoadedManifest | null = null
   let remoteFailureLogged = false
+  let v2FailureLogged = false
   /** Writes to equipped.json are serialised so two quick clicks cannot interleave read/modify/write. */
   let chain: Promise<unknown> = Promise.resolve()
 
@@ -63,13 +74,32 @@ export function createCosmeticsService(ctx: AppContext): CosmeticsService {
     return next
   }
 
+  async function fetchFrom(url: string, refresh: boolean): Promise<LoadedManifest> {
+    const result = await new JsonCache(ctx.paths.cache).fetch(url, CosmeticsManifestSchema, {
+      maxAgeMs: refresh ? 0 : REMOTE_MAX_AGE_MS
+    })
+    const manifest = toCosmeticsManifest(result.data)
+    const skipped = result.data.cosmetics.length - manifest.cosmetics.length
+    if (skipped > 0) log.info(`Skipped ${skipped} catalogue entries this launcher cannot use (${url})`)
+    return { manifest, source: result.source, loadedAt: Date.now() }
+  }
+
+  /** cosmetics-v2.json (shields, bandanas, bundles), then cosmetics.json, then the bundled copy. */
   async function fetchManifest(refresh: boolean): Promise<LoadedManifest> {
-    const url = ctx.manifestUrls().cosmetics
+    const urls = ctx.manifestUrls()
+    if (urls.cosmeticsV2) {
+      try {
+        return await fetchFrom(urls.cosmeticsV2, refresh)
+      } catch (err) {
+        if (!v2FailureLogged) {
+          v2FailureLogged = true
+          const error = ShardError.from(err)
+          log.info(`cosmetics-v2.json unavailable (${error.code}: ${error.message}); reading cosmetics.json`)
+        }
+      }
+    }
     try {
-      const result = await new JsonCache(ctx.paths.cache).fetch(url, CosmeticsManifestSchema, {
-        maxAgeMs: refresh ? 0 : REMOTE_MAX_AGE_MS
-      })
-      return { manifest: toCosmeticsManifest(result.data), source: result.source, loadedAt: Date.now() }
+      return await fetchFrom(urls.cosmetics, refresh)
     } catch (err) {
       const error = ShardError.from(err)
       if (!remoteFailureLogged) {
@@ -150,14 +180,15 @@ export function createCosmeticsService(ctx: AppContext): CosmeticsService {
       return serialize(async () => {
         const { manifest } = await getManifest(false)
         const [localOwned, current] = await Promise.all([readOwned(), readEquipped()])
-        if (slot !== 'cape') {
+        if (!isOnlineSlot(slot)) {
           return writeEquipped(applyEquip(current, manifest, new Set(ownedIds(manifest, localOwned)), slot, id, now()))
         }
-        // Capes are what the Shard API knows about. Validate the slot locally first (ownership
-        // aside), then mirror the change to the API, which checks ownership and shows the cape
-        // to every Shard player. equipped.json is still written: the game reads it.
+        // Capes, shields and bandanas are what the Shard API knows about. Validate the slot
+        // locally first (ownership aside), then mirror the change to the API, which checks
+        // ownership and shows it to every Shard player. equipped.json is still written: the game
+        // reads it.
         applyEquip(current, manifest, new Set(manifest.cosmetics.map((c) => c.id)), slot, id, now())
-        const online = await ctx.services.shardApi.syncCape(id)
+        const online = await ctx.services.shardApi.syncSlot(slot, id)
         const owned = new Set(effectiveOwned(manifest.cosmetics, ownedIds(manifest, localOwned), online))
         return writeEquipped(applyEquip(current, manifest, owned, slot, id, now()))
       })
@@ -182,7 +213,8 @@ export function createCosmeticsService(ctx: AppContext): CosmeticsService {
         for (const slot of COSMETIC_SLOTS) {
           const id = next.equipped[slot]
           const cosmetic = id === undefined ? undefined : byId.get(id)
-          if (!cosmetic || !CAPE_LAYOUT_TYPES.has(cosmetic.type)) continue
+          // Every equipped item with a texture (capes, shield skins, bandanas...) is cached for the game.
+          if (!cosmetic || cosmetic.textureUrl === null) continue
           try {
             await assets.ensureLocal(cosmetic, 'texture')
           } catch (err) {

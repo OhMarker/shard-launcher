@@ -126,7 +126,7 @@ describe('cosmetics-utils: palette', () => {
 describe('cosmetics-utils: types and slots', () => {
   it('labels every type and lists the filters', () => {
     for (const type of COSMETIC_TYPES) expect(u.TYPE_LABELS[type].length).toBeGreaterThan(0)
-    expect(u.TYPE_FILTERS).toEqual(['all', ...COSMETIC_TYPES])
+    expect(u.TYPE_FILTERS).toEqual(['all', ...COSMETIC_TYPES.filter((t) => t !== 'bundle')])
   })
 
   it('maps types to slots and back equipment', () => {

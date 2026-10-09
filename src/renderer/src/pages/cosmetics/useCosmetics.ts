@@ -75,8 +75,9 @@ export function useCosmeticsMutations() {
     onError: (err, _vars, prev) => rollback(err, prev),
     onSuccess: (equipped, vars) => {
       applyEquipped(equipped)
-      // Capes are mirrored to the Shard API; refresh what it says the player wears.
-      if (vars.type === 'cape') void qc.invalidateQueries({ queryKey: queryKeys.online })
+      // Capes, shields and bandanas are mirrored to the Shard API; refresh what it says the player wears.
+      if (vars.type === 'cape' || vars.type === 'shield' || vars.type === 'bandana')
+        void qc.invalidateQueries({ queryKey: queryKeys.online })
     }
   })
 
@@ -98,7 +99,9 @@ export function useBuyCosmetic() {
   return useMutation({
     mutationFn: (cosmetic: Cosmetic) => invoke('online:buy', { id: cosmetic.id }),
     onSuccess: (me, cosmetic) => {
-      qc.setQueryData<OnlineState>(queryKeys.online, (prev) => (prev?.status === 'ready' ? { ...prev, me } : prev))
+      qc.setQueryData<OnlineState>(queryKeys.online, (prev) =>
+        prev?.status === 'ready' ? { ...prev, me } : prev
+      )
       toast({
         kind: 'success',
         title: `${cosmetic.name} is yours`,

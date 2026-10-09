@@ -3,9 +3,11 @@ import {
   Crown,
   Feather,
   Flag,
+  Gift,
   PartyPopper,
   Ribbon,
   Shield,
+  Shirt,
   type LucideProps
 } from 'lucide-react'
 import { type ComponentType } from 'react'
@@ -13,12 +15,14 @@ import { type CosmeticType } from '@shared/types'
 
 const ICONS: Record<CosmeticType, ComponentType<LucideProps>> = {
   cape: Flag,
-  cloak: Shield,
+  cloak: Shirt,
   hat: Crown,
   wings: Feather,
   bandana: Ribbon,
   backbling: Backpack,
-  emote: PartyPopper
+  shield: Shield,
+  emote: PartyPopper,
+  bundle: Gift
 }
 
 export function TypeIcon({ type, className }: { type: CosmeticType; className?: string }) {

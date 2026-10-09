@@ -1,4 +1,5 @@
-export type CosmeticType = 'cape' | 'cloak' | 'hat' | 'wings' | 'bandana' | 'backbling' | 'emote'
+export type CosmeticType =
+  'cape' | 'cloak' | 'hat' | 'wings' | 'bandana' | 'backbling' | 'shield' | 'emote' | 'bundle'
 export type CosmeticRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
 export type CosmeticAvailability = 'free' | 'locked'
 
@@ -9,7 +10,9 @@ export const COSMETIC_TYPES: readonly CosmeticType[] = [
   'wings',
   'bandana',
   'backbling',
-  'emote'
+  'shield',
+  'emote',
+  'bundle'
 ]
 
 export const COSMETIC_RARITIES: readonly CosmeticRarity[] = [
@@ -25,8 +28,11 @@ export interface Cosmetic {
   type: CosmeticType
   name: string
   rarity: CosmeticRarity
-  /** Texture the Shard client renders. Capes/cloaks/wings use the 64x32 cape layout. */
-  textureUrl: string
+  /**
+   * Texture the Shard client renders. Capes/cloaks/wings use the 64x32 cape layout. Null only for
+   * bundles, which are sold as a set of other cosmetics and have nothing to render.
+   */
+  textureUrl: string | null
   /** Optional 2D preview card image. */
   previewUrl: string | null
   animated: boolean
@@ -34,6 +40,8 @@ export interface Cosmetic {
   description: string | null
   availability: CosmeticAvailability
   tags: string[]
+  /** Bundles only: the ids of the cosmetics the bundle gives. */
+  items?: string[]
 }
 
 export interface CosmeticsManifest {
@@ -42,8 +50,12 @@ export interface CosmeticsManifest {
   cosmetics: Cosmetic[]
 }
 
-/** Slots that hold one cosmetic each. Emotes are a list. */
-export type CosmeticSlot = Exclude<CosmeticType, 'emote'>
+/** Slots that hold one cosmetic each. Emotes are a list; bundles are bought, never worn. */
+export type CosmeticSlot = Exclude<CosmeticType, 'emote' | 'bundle'>
+
+/** Slots the Shard API stores and shows to other players (shard-api/API.md, POST /v1/equip). */
+export type OnlineSlot = 'cape' | 'shield' | 'bandana'
+export const ONLINE_SLOTS: readonly OnlineSlot[] = ['cape', 'shield', 'bandana']
 export type EquippedMap = Partial<Record<CosmeticSlot, string>>
 
 /** Written to <data>/cosmetics/equipped.json. The Shard client reads this at runtime. */

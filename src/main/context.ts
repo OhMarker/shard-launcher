@@ -16,6 +16,7 @@ import type {
   BundledModsManifest,
   CopyModsResult,
   CosmeticSlot,
+  OnlineSlot,
   CosmeticsView,
   CrashReport,
   ConsoleLine,
@@ -238,13 +239,14 @@ export interface ShardApiService {
   shop(): Promise<ShopItem[]>
   me(): Promise<ShardMe>
   buy(id: string): Promise<ShardMe>
-  equip(capeId: string | null): Promise<ShardMe>
+  /** `POST /v1/equip` for one slot (capes use the original `{ cape }` body every API version reads). */
+  equip(slot: OnlineSlot, id: string | null): Promise<ShardMe>
   /**
-   * Mirrors a local cape change to the API when signed in. Returns the API's ownership for the
-   * equip check (nothing from the shop when signed out), or null when the API is unavailable
-   * (local catalogue rules apply).
+   * Mirrors a local cape/shield/bandana change to the API when signed in. Returns the API's
+   * ownership for the equip check (nothing from the shop when signed out), or null when the API is
+   * unavailable (local catalogue rules apply).
    */
-  syncCape(capeId: string | null): Promise<{ owned: string[]; shop: ShopItem[] } | null>
+  syncSlot(slot: OnlineSlot, id: string | null): Promise<{ owned: string[]; shop: ShopItem[] } | null>
   friends(): Promise<FriendsView>
   requestFriend(name: string): Promise<FriendsView>
   acceptFriend(uuid: string): Promise<FriendsView>
@@ -337,6 +339,16 @@ export interface AppContext {
   /** Resolved MSA client id or null when sign-in is not configured. */
   msaClientId(): string | null
   msaRedirectUri(): string
-  manifestUrls(): { shard: string; bundledMods: string; cosmetics: string; services: string }
+  /**
+   * `cosmeticsV2` is the catalogue with shields, bandanas and bundles (cosmetics-v2.json); null or
+   * absent means only `cosmetics` is read. Older launchers read only `cosmetics`.
+   */
+  manifestUrls(): {
+    shard: string
+    bundledMods: string
+    cosmetics: string
+    cosmeticsV2?: string | null
+    services: string
+  }
   modrinthUserAgent(): string
 }

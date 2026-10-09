@@ -16,9 +16,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { BuyButton, type BuyOffer } from '@/components/cosmetics/BuyButton'
 import { TypeIcon } from '@/components/cosmetics/TypeIcon'
-import { TYPE_LABELS } from './cosmetics-utils'
+import { TYPE_HINTS, TYPE_LABELS } from './cosmetics-utils'
 
-const SLOTS = COSMETIC_TYPES.filter((t): t is CosmeticSlot => t !== 'emote')
+const SLOTS = COSMETIC_TYPES.filter((t): t is CosmeticSlot => t !== 'emote' && t !== 'bundle')
 
 export interface PreviewState {
   cosmetic: Cosmetic
@@ -28,6 +28,11 @@ export interface PreviewState {
   offer: BuyOffer | null
   /** True when the preview came from hover/selection rather than the equipped item. */
   clearable: boolean
+  /**
+   * 2D preview image for items the 3D model does not show (shield skins, bandanas, hats); it is
+   * drawn over the viewer. Null for capes, cloaks and wings, which the model wears.
+   */
+  imageUrl: string | null
 }
 
 export interface CosmeticPreviewCardProps {
@@ -46,6 +51,8 @@ export interface CosmeticPreviewCardProps {
   byId: ReadonlyMap<string, Cosmetic>
   onUnequip: (slot: CosmeticSlot) => void
   onRemoveEmote: (id: string) => void
+  /** Slots listed as rows even when empty (cape, shield, bandana when the catalogue has them). */
+  panelSlots: readonly CosmeticSlot[]
   loading: boolean
   className?: string
 }
@@ -103,17 +110,22 @@ export function CosmeticPreviewCard({
   byId,
   onUnequip,
   onRemoveEmote,
+  panelSlots,
   loading,
   className
 }: CosmeticPreviewCardProps) {
+  const slotRows = panelSlots.map((slot) => {
+    const id = equipped?.equipped[slot] ?? null
+    return { slot, id, name: id ? (byId.get(id)?.name ?? id) : null }
+  })
   const slotChips = equipped
-    ? SLOTS.flatMap((slot) => {
+    ? SLOTS.filter((slot) => !panelSlots.includes(slot)).flatMap((slot) => {
         const id = equipped.equipped[slot]
         return id ? [{ slot, id, name: byId.get(id)?.name ?? id }] : []
       })
     : []
   const emotes = equipped?.emotes ?? []
-  const nothing = slotChips.length === 0 && emotes.length === 0
+  const nothing = slotRows.length === 0 && slotChips.length === 0 && emotes.length === 0
 
   return (
     <Card padding="none" className={cn('overflow-hidden', className)}>
@@ -133,6 +145,28 @@ export function CosmeticPreviewCard({
             </Badge>
           </div>
         )}
+        <AnimatePresence>
+          {preview?.imageUrl && (
+            <motion.div
+              key={`image:${preview.cosmetic.id}`}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              className="glass-strong pointer-events-none absolute right-3 top-3 w-[150px] overflow-hidden rounded-[14px] p-1.5"
+            >
+              <img
+                src={preview.imageUrl}
+                alt=""
+                draggable={false}
+                className="aspect-square w-full rounded-[10px] object-cover"
+              />
+              <div className="px-1 pb-0.5 pt-1 text-center text-[10px] leading-tight text-fg-subtle">
+                {TYPE_HINTS[preview.cosmetic.type] ?? TYPE_LABELS[preview.cosmetic.type]}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {preview && (
             <motion.div
@@ -194,30 +228,62 @@ export function CosmeticPreviewCard({
             Nothing equipped yet. Pick something from the wardrobe.
           </p>
         ) : (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <AnimatePresence initial={false}>
-              {slotChips.map(({ slot, id, name }) => (
-                <Chip
-                  key={`${slot}:${id}`}
-                  icon={<TypeIcon type={slot} />}
-                  label={name}
-                  hint={TYPE_LABELS[slot]}
-                  onRemove={() => onUnequip(slot)}
-                  removeLabel={`Unequip ${name}`}
-                />
-              ))}
-              {emotes.map((id) => (
-                <Chip
-                  key={`emote:${id}`}
-                  icon={<PartyPopper />}
-                  label={byId.get(id)?.name ?? id}
-                  hint="Emote"
-                  onRemove={() => onRemoveEmote(id)}
-                  removeLabel={`Remove ${byId.get(id)?.name ?? id} from the emote wheel`}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
+          <>
+            {slotRows.length > 0 && (
+              <ul
+                className="mt-2 divide-y divide-line overflow-hidden rounded-[12px] border border-line"
+                aria-label="Slots"
+              >
+                {slotRows.map(({ slot, id, name }) => (
+                  <li key={slot} className="flex h-10 items-center gap-2.5 px-3 text-[13px]">
+                    <TypeIcon type={slot} className="size-4 shrink-0 text-fg-muted" />
+                    <span className="w-16 shrink-0 text-fg-subtle">{TYPE_LABELS[slot]}</span>
+                    <span
+                      className={cn('min-w-0 flex-1 truncate', name ? 'text-fg' : 'text-fg-subtle')}
+                    >
+                      {name ?? 'Empty'}
+                    </span>
+                    {id && name && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => onUnequip(slot)}
+                        aria-label={`Unequip ${name}`}
+                      >
+                        Unequip
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {(slotChips.length > 0 || emotes.length > 0) && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <AnimatePresence initial={false}>
+                  {slotChips.map(({ slot, id, name }) => (
+                    <Chip
+                      key={`${slot}:${id}`}
+                      icon={<TypeIcon type={slot} />}
+                      label={name}
+                      hint={TYPE_LABELS[slot]}
+                      onRemove={() => onUnequip(slot)}
+                      removeLabel={`Unequip ${name}`}
+                    />
+                  ))}
+                  {emotes.map((id) => (
+                    <Chip
+                      key={`emote:${id}`}
+                      icon={<PartyPopper />}
+                      label={byId.get(id)?.name ?? id}
+                      hint="Emote"
+                      onRemove={() => onRemoveEmote(id)}
+                      removeLabel={`Remove ${byId.get(id)?.name ?? id} from the emote wheel`}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </>
         )}
       </div>
     </Card>

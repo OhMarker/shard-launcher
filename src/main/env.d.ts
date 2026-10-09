@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly SHARD_MANIFEST_URL?: string
   readonly SHARD_BUNDLED_MODS_URL?: string
   readonly SHARD_COSMETICS_URL?: string
+  readonly SHARD_COSMETICS_V2_URL?: string
   readonly SHARD_SERVICES_URL?: string
   readonly MODRINTH_CONTACT?: string
 }

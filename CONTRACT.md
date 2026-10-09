@@ -14,6 +14,7 @@ environment variables or per user from Settings → Integrations.
 | `shard-manifest.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/shard-manifest.json` | client release pipeline |
 | `bundled-mods.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/bundled-mods.json` | launcher team |
 | `cosmetics.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/cosmetics.json` | cosmetics team |
+| `cosmetics-v2.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/cosmetics-v2.json` | cosmetics team (0.5.0+, section 3) |
 | `services.json` | `https://raw.githubusercontent.com/OhMarker/meta/main/services.json` | API owner (see section 7) |
 
 Files written by the launcher for the client to read at runtime:
@@ -127,6 +128,15 @@ usual. Users can turn the layer off per instance or globally.
 The wardrobe catalogue. A copy ships in `resources/cosmetics/cosmetics.json` (since 0.2.0 only
 the OhMarker cape) and is used when the hosted copy is unavailable.
 
+**cosmetics-v2.json (launcher 0.5.0+).** Same shape with `"schemaVersion": 2`, adding the
+`shield` type, `bundle` entries (`textureUrl: null`, `items: [ids]`) and the OhMarker set.
+0.5.0+ reads it first and falls back to `cosmetics.json`, then the bundled copy; older launchers
+only read `cosmetics.json`, which must keep validating for them (schemaVersion 1, the original
+types, a string `textureUrl` on every entry), so new types go only into the v2 file. Since 0.5.0
+every entry is validated on its own: an entry with a type or field this launcher does not know is
+skipped (and logged) instead of failing the whole file, so a newer catalogue never blanks the
+wardrobe of an older 0.5.x launcher.
+
 ```json
 {
   "schemaVersion": 1,
@@ -152,7 +162,7 @@ the OhMarker cape) and is used when the hosted copy is unavailable.
 | Field | Type | Rules |
 | --- | --- | --- |
 | `id` | string | Stable, unique, URL-safe. Used in `equipped.json`. |
-| `type` | enum | `cape`, `cloak`, `hat`, `wings`, `bandana`, `backbling`, `emote` |
+| `type` | enum | `cape`, `cloak`, `hat`, `wings`, `bandana`, `backbling`, `emote`; v2 only: `shield` (a skin for the shield the player holds), `bundle` (several items sold together; never worn) |
 | `name` | string | Display name. |
 | `rarity` | enum | `common`, `rare`, `epic`, `legendary`, `mythic` |
 | `textureUrl` | string | `https://…` or `bundled://cosmetics/textures/<file>.png` (ships inside the launcher). Capes, cloaks and wings use the vanilla **64×32 cape layout** (or a whole multiple of it, such as 4096×2048 for a high-resolution cape) so the launcher can preview them with skinview3d (wings preview as elytra). Other types are free-form; the client defines their model. |
@@ -162,6 +172,7 @@ the OhMarker cape) and is used when the hosted copy is unavailable.
 | `description` | string or null | Shown on hover. |
 | `availability` | enum | `free` (owned by everyone) or `locked` (needs an unlock; see ownership). |
 | `tags` | string[] | Free-form, used for search. |
+| `items` | string[] (bundles only) | The ids a bundle gives. Bundles have `textureUrl: null`. |
 
 **Ownership.** Since 0.3.0 the Shard API (section 7) decides ownership of every item its shop
 (`GET /v1/shop`) sells, whatever `availability` says: owned when `me.owned` lists it (admins own
@@ -195,11 +206,12 @@ Written by the launcher whenever the wardrobe changes and again right before eac
 | Field | Meaning |
 | --- | --- |
 | `accountId` | Minecraft profile UUID without dashes of the account that launched, or `null`. |
-| `equipped` | One cosmetic id per slot: `cape`, `cloak`, `hat`, `wings`, `bandana`, `backbling`. `cape` and `cloak` are mutually exclusive (both render on the back). Missing key = nothing equipped. |
+| `equipped` | One cosmetic id per slot: `cape`, `cloak`, `hat`, `wings`, `bandana`, `backbling`, `shield` (0.5.0+; the held shield's skin). Bundles never appear here. `cape` and `cloak` are mutually exclusive (both render on the back). Missing key = nothing equipped. |
 | `emotes` | Ordered emote wheel, at most 8 ids. |
 
 The client must tolerate unknown ids (the catalogue may have changed) and treat them as unequipped.
-The texture for every equipped cape/cloak/wings item is guaranteed to exist at
+The texture for every equipped item that has one (capes, cloaks, wings and, since 0.5.0, shield
+skins, bandanas and the rest) is guaranteed to exist at
 `<data>/cosmetics/textures/<id>.png` after launch preparation (downloaded for remote textures,
 copied out of the launcher's resources for bundled ones since 0.2.1). Shard Client 0.5.0+ draws
 the equipped cape on the local player.
@@ -280,4 +292,12 @@ The API itself is specified in `shard-api/API.md`. What the launcher relies on:
   player as-is).
 - **Equipping a cape** the shop sells sends `POST /v1/equip` and still writes `equipped.json`
   (section 4): the API is what other players see, `equipped.json` is what the local client reads.
+- **Shield skins and bandanas (0.5.0+)** go the same way with `POST /v1/equip { slot, id }`
+  (`slot` is `shield` or `bandana`; capes keep sending `{ cape }`, which every API version reads).
+  The launcher only sends them when the shop sells an item for that slot, so an API from before
+  those slots never receives a body it would read as "unequip the cape". `me.equipped` carries
+  all three slots (older APIs: only `me.cape`).
+- **Bundles:** a shop item with `items` (the OhMarker set: 2000 tokens for the cape, shield skin
+  and bandana, 1000 each alone). Buying it gives whatever is missing for the full price; the API
+  answers 409 when everything is owned, and lists the bundle id in `me.owned` once every item is.
 - Tokens are earned by the game's heartbeats (`POST /v1/heartbeat`), not by the launcher.

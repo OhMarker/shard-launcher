@@ -4,6 +4,7 @@
  */
 import { pickBuildForVersion } from '@shared/minecraft-version'
 import {
+  type AccountBridgeInfo,
   type Instance,
   type LauncherInfo,
   type ShardBuild,
@@ -40,6 +41,8 @@ export interface LauncherInfoInput {
   equippedPath: string
   /** Absolute path to the shared config folder. */
   sharedConfigDir: string
+  /** The account bridge serving this launch, or null/absent when there is none. */
+  accountBridge?: AccountBridgeInfo | null
   now: Date
 }
 
@@ -59,6 +62,7 @@ export function buildLauncherInfo(input: LauncherInfoInput): LauncherInfo {
     theme: settings.theme,
     equippedPath: input.equippedPath,
     sharedConfigPath: isSharedConfigEnabled(settings.sharedConfig, instance) ? input.sharedConfigDir : null,
+    ...(input.accountBridge ? { accountBridge: { url: input.accountBridge.url, secret: input.accountBridge.secret } } : {}),
     writtenAt: input.now.toISOString()
   }
 }

@@ -17,6 +17,7 @@ export function useGlobalEvents(): void {
       onEvent('app:navigate', ({ page }) => {
         if (isPage(page)) useUi.getState().navigate(page)
       }),
+      onEvent('auth:signInRequested', () => useUi.getState().setSignInOpen(true)),
       onEvent('auth:accountsChanged', (accounts) => {
         qc.setQueryData(queryKeys.accounts, accounts)
         void qc.invalidateQueries({ queryKey: ['auth', 'profile'] })

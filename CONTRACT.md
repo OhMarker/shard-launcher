@@ -224,6 +224,7 @@ Written into the instance folder immediately before the Java process is spawned.
   "theme": "dark",
   "equippedPath": "C:\\Users\\me\\AppData\\Roaming\\Shard\\cosmetics\\equipped.json",
   "sharedConfigPath": "C:\\Users\\me\\AppData\\Roaming\\Shard\\shared-config",
+  "accountBridge": { "url": "http://127.0.0.1:53123", "secret": "<64 hex chars>" },
   "writtenAt": "2026-10-06T12:00:00Z"
 }
 ```
@@ -235,6 +236,7 @@ Written into the instance folder immediately before the Java process is spawned.
 | `shardBuild` | The installed client version, or `null` when launching in Client pending mode. |
 | `equippedPath` | Absolute path to `equipped.json`. |
 | `sharedConfigPath` | Absolute path to the shared config folder, or `null` when the layer is off for this instance. |
+| `accountBridge` | Optional, Shard instances only. Loopback account switching bridge for this launch: `url` is `http://127.0.0.1:<random port>`, `secret` is 32 random bytes as hex (new for every launch, sent as `Authorization: Bearer <secret>`). Open only while that game process runs; requests with an `Origin` header are refused. Absent means no in-game account switching. Endpoints: `shard-client/docs/ACCOUNT-SWITCH-API.md`. |
 
 The launcher also sets environment variables on the game process: `SHARD_INSTANCE_ID`,
 `SHARD_INSTANCE_DIR`, `SHARD_MC_VERSION`.

@@ -9,6 +9,7 @@ import { createLogger } from '../logger'
 import { buildArguments } from '../minecraft/arguments'
 import { currentOs, launchFeatures } from '../minecraft/rules'
 import { ensureDir, writeFileAtomic } from '../util/fs'
+import { startAccountBridge, type AccountBridge } from './account-bridge'
 import { InstanceConsole, type FatalInfo } from './console'
 import { findCrashReports, readCrashReport } from './crash'
 import { runPipeline, type PreparedGame } from './pipeline'
@@ -27,6 +28,8 @@ interface RunningGame {
   hiddenWindow: boolean
   /** Fatal startup error detected in the console (Fabric dependency failures etc.). */
   fatal: FatalInfo | null
+  /** Account switching bridge served for this game; closed when it exits. */
+  bridge: AccountBridge | null
   exited: Promise<void>
   resolveExited: () => void
 }
@@ -132,21 +135,47 @@ export function createLaunchService(ctx: AppContext): LaunchService {
     }
   }
 
+  /** The bridge is optional: if it cannot start, the game launches without in-game switching. */
+  async function openBridge(instance: Instance): Promise<AccountBridge | null> {
+    if (instance.type !== 'shard') return null
+    try {
+      return await startAccountBridge(ctx)
+    } catch (err) {
+      log.warn('Could not start the account bridge; in-game account switching is unavailable', err)
+      return null
+    }
+  }
+
   async function runLaunch(instance: Instance, signal: AbortSignal): Promise<void> {
     const con = consoleFor(instance.id)
     states.begin(instance.id, 'launch')
     con.launcher(`Launching ${instance.name} (Minecraft ${instance.minecraftVersion})`)
+    let bridge: AccountBridge | null = null
     try {
       const session = await resolveSession(instance)
-      const prepared = await runPipeline({ ctx, instance, mode: 'launch', signal, session, states, console: con })
+      bridge = await openBridge(instance)
+      const prepared = await runPipeline({
+        ctx,
+        instance,
+        mode: 'launch',
+        signal,
+        session,
+        accountBridge: bridge?.info ?? null,
+        states,
+        console: con
+      })
       prepared.instance = await patchInstance(instance.id, { installState: 'installed' })
-      await spawnGame(prepared, session)
+      await spawnGame(prepared, session, bridge)
+      // The running game owns the bridge now and closes it on exit.
+      bridge = null
     } catch (err) {
       failPreparation(instance.id, 'launch', err)
+    } finally {
+      if (bridge) void bridge.close()
     }
   }
 
-  async function spawnGame(prepared: PreparedGame, session: GameSession): Promise<void> {
+  async function spawnGame(prepared: PreparedGame, session: GameSession, bridge: AccountBridge | null): Promise<void> {
     const instance = prepared.instance
     const instanceId = instance.id
     const con = consoleFor(instanceId)
@@ -198,7 +227,7 @@ export function createLaunchService(ctx: AppContext): LaunchService {
       })
       await waitForSpawn(child)
       const pid = child.pid ?? 0
-      attach(instance, child, pid, folder, env)
+      attach(instance, child, pid, folder, env, bridge)
     } catch (err) {
       const error = ShardError.from(err, 'LAUNCH_FAILED')
       states.setStep(instanceId, 'spawn', 'failed', { detail: error.message })
@@ -206,7 +235,14 @@ export function createLaunchService(ctx: AppContext): LaunchService {
     }
   }
 
-  function attach(instance: Instance, child: ChildProcess, pid: number, folder: string, env: ProcessEnv): void {
+  function attach(
+    instance: Instance,
+    child: ChildProcess,
+    pid: number,
+    folder: string,
+    env: ProcessEnv,
+    bridge: AccountBridge | null
+  ): void {
     const instanceId = instance.id
     const con = consoleFor(instanceId)
     const startedAt = Date.now()
@@ -222,6 +258,7 @@ export function createLaunchService(ctx: AppContext): LaunchService {
       killRequested: false,
       hiddenWindow: false,
       fatal: null,
+      bridge,
       exited,
       resolveExited
     }
@@ -282,6 +319,10 @@ export function createLaunchService(ctx: AppContext): LaunchService {
     const instanceId = run.instanceId
     const con = consoleFor(instanceId)
     running.delete(instanceId)
+    if (run.bridge) {
+      run.bridge.close().catch((err: unknown) => log.warn('Closing the account bridge failed', err))
+      run.bridge = null
+    }
     con.flushRemainder()
 
     const exitCode = exitCodeFrom(code, signal)

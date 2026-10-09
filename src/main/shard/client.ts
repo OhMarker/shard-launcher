@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { LAUNCHER_INFO_FILE } from '@shared/constants'
 import { ShardError } from '@shared/errors'
 import { LauncherInfoSchema, ShardManifestSchema } from '@shared/schemas/shard'
-import { type Instance, type ShardBuild, type ShardManifestView } from '@shared/types'
+import { type AccountBridgeInfo, type Instance, type ShardBuild, type ShardManifestView } from '@shared/types'
 import {
   type AppContext,
   type GameSession,
@@ -162,7 +162,7 @@ export function createShardClientService(ctx: AppContext): ShardClientService {
       }
     },
 
-    async writeLauncherInfo(instance, session: GameSession | null) {
+    async writeLauncherInfo(instance, session: GameSession | null, accountBridge?: AccountBridgeInfo | null) {
       const settings = ctx.settings.get()
       const info = buildLauncherInfo({
         launcherVersion: ctx.version,
@@ -171,6 +171,7 @@ export function createShardClientService(ctx: AppContext): ShardClientService {
         settings: { accent: settings.accent, theme: settings.theme, sharedConfig: settings.sharedConfig },
         equippedPath: ctx.services.cosmetics.equippedPath(),
         sharedConfigDir: ctx.paths.sharedConfig,
+        accountBridge,
         now: new Date()
       })
       const validated = LauncherInfoSchema.safeParse(info)

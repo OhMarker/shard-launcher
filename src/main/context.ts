@@ -6,6 +6,7 @@
  */
 import { type BrowserWindow } from 'electron'
 import type {
+  AccountBridgeInfo,
   AccountSummary,
   AdminPlayer,
   FriendsView,
@@ -206,7 +207,8 @@ export interface ShardClientService {
    */
   sync(instance: Instance, opts?: { force?: boolean } & ProgressSink): Promise<ShardBuild | null>
   reinstall(instanceId: string): Promise<void>
-  writeLauncherInfo(instance: Instance, session: GameSession | null): Promise<void>
+  /** `accountBridge` is written only when given (Shard launches with a running bridge). */
+  writeLauncherInfo(instance: Instance, session: GameSession | null, accountBridge?: AccountBridgeInfo | null): Promise<void>
 }
 
 export interface SharedConfigService {

@@ -124,6 +124,23 @@ describe('buildLauncherInfo', () => {
     expect(LauncherInfoSchema.safeParse(info).success).toBe(true)
   })
 
+  it('includes accountBridge only when a bridge serves the launch', () => {
+    expect(buildLauncherInfo(base)).not.toHaveProperty('accountBridge')
+    expect(buildLauncherInfo({ ...base, accountBridge: null })).not.toHaveProperty('accountBridge')
+    const bridge = { url: 'http://127.0.0.1:53123', secret: 'ab'.repeat(32) }
+    const info = buildLauncherInfo({ ...base, accountBridge: bridge })
+    expect(info.accountBridge).toEqual(bridge)
+    expect(LauncherInfoSchema.safeParse(info).success).toBe(true)
+  })
+
+  it('rejects an account bridge that is not loopback or has a malformed secret', () => {
+    const info = buildLauncherInfo(base)
+    const good = { url: 'http://127.0.0.1:53123', secret: 'ab'.repeat(32) }
+    expect(LauncherInfoSchema.safeParse({ ...info, accountBridge: { ...good, url: 'http://0.0.0.0:53123' } }).success).toBe(false)
+    expect(LauncherInfoSchema.safeParse({ ...info, accountBridge: { ...good, url: 'http://localhost:53123' } }).success).toBe(false)
+    expect(LauncherInfoSchema.safeParse({ ...info, accountBridge: { ...good, secret: 'short' } }).success).toBe(false)
+  })
+
   it('only exposes the shared config folder when the layer is active for the instance', () => {
     expect(buildLauncherInfo({ ...base, settings: { ...base.settings, sharedConfig: false } }).sharedConfigPath).toBeNull()
     expect(

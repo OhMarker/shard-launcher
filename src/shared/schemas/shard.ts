@@ -97,5 +97,11 @@ export const LauncherInfoSchema = z.object({
   theme: z.enum(['dark', 'light']),
   equippedPath: z.string(),
   sharedConfigPath: z.string().nullable(),
+  accountBridge: z
+    .object({
+      url: z.string().regex(/^http:\/\/127\.0\.0\.1:\d{1,5}$/),
+      secret: z.string().regex(/^[0-9a-f]{64}$/)
+    })
+    .optional(),
   writtenAt: z.string()
 })

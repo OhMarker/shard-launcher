@@ -141,3 +141,17 @@ Running log of product and engineering decisions made while building Shard Launc
   launcher fetched the manifest from "" and showed "Shard client builds aren't published yet"
   (instances kept whatever jar they had). `manifestUrls()` now uses `firstSet`, which treats blank
   values as unset. Verified by building with the three variables set to "".
+
+## Account bridge and credits (unreleased)
+- **In-game account switching** follows `shard-client/docs/ACCOUNT-SWITCH-API.md`. Each Shard
+  launch starts a loopback HTTP server (`src/main/launch/account-bridge.ts`; rules, routing and
+  response shapes in `account-bridge-logic.ts`, unit tested) and writes `accountBridge` into
+  `launcher-info.json`; the game process's exit closes it. Sessions come from the same
+  `AccountService.getSession()` the launch uses (refreshes MSA -> Xbox -> Minecraft when the token
+  has under 5 minutes left), and a successful switch makes that account the active one. "Add
+  account" raises the window and emits `auth:signInRequested`, which opens the normal sign-in
+  dialog. If the server cannot start, the game launches without `accountBridge`. Nothing in the
+  bridge logs headers, bodies, tokens or the secret.
+- **Credits**: "Made by OhMarker with the help of swxyzx2" and a License button at the bottom of
+  the sidebar and in Settings -> About. The dialog shows the repo's `LICENSE` (MIT, added to the
+  repo root to match package.json/README), bundled at build time with Vite's `?raw` import.

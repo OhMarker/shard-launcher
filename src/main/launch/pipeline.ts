@@ -8,6 +8,7 @@ import { ShardError, type ShardErrorCode } from '@shared/errors'
 import { fallbackJavaMajor } from '@shared/minecraft-version'
 import { type VersionJson } from '@shared/schemas/mojang'
 import {
+  type AccountBridgeInfo,
   type DownloadProgress,
   type Instance,
   type JavaRuntime,
@@ -33,6 +34,8 @@ export interface PipelineInput {
   signal: AbortSignal
   /** Required for launches; null while installing or repairing. */
   session: GameSession | null
+  /** Account bridge for this launch, written into launcher-info.json. */
+  accountBridge?: AccountBridgeInfo | null
   states: LaunchStateStore
   console: InstanceConsole
 }
@@ -224,7 +227,7 @@ export async function runPipeline(input: PipelineInput): Promise<PreparedGame> {
   if (mode === 'launch' && session) {
     await step('cosmetics', async () => {
       await ctx.services.cosmetics.prepareForLaunch(session.accountId)
-      await ctx.services.shard.writeLauncherInfo(instance, session)
+      await ctx.services.shard.writeLauncherInfo(instance, session, input.accountBridge ?? null)
     })
   } else {
     skip('cosmetics', 'Not needed for install')

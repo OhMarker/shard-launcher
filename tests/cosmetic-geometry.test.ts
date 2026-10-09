@@ -89,14 +89,41 @@ describe('shield geometry (vanilla ShieldModel)', () => {
     expect(north.uv[right][0] * 64).toBe(13)
   })
 
-  it('holds it at the outside of the left arm with the art facing out', () => {
+  it('hangs upright along the outside of the left forearm, art facing out', () => {
     const m = offhandShieldMatrix()
-    const centre = new Vector3(0, 0, 1.5).applyMatrix4(m) // plate centre in skinview3d space
-    expect(centre.x).toBeCloseTo(4.5)
-    expect(centre.y).toBeCloseTo(-6)
-    expect(centre.z).toBeCloseTo(0)
-    const facing = new Vector3(0, 0, 1).transformDirection(m) // art normal
-    expect(facing.x).toBeCloseTo(1)
+    const b = toBuffers(shieldQuads())
+    const pts: Vector3[] = []
+    for (let i = 0; i < b.positions.length; i += 3) pts.push(new Vector3().fromArray(b.positions, i).applyMatrix4(m))
+    const plate = pts.slice(0, 24) // the first six faces (four corners each) are the plate
+    const span = (k: 'x' | 'y' | 'z') => {
+      const v = plate.map((p) => p[k])
+      return { min: Math.min(...v), max: Math.max(...v) }
+    }
+    // No arm in the plate: every corner of the arm's overlay box (x -1.25..3.25, y -10.25..2.25,
+    // z -2.25..2.25) lies inwards of the plate's inner face.
+    const n = new Vector3(0, 0, 1).transformDirection(m)
+    const inner = Math.min(...plate.map((p) => p.dot(n)))
+    for (const x of [-1.25, 3.25]) for (const y of [-10.25, 2.25]) for (const z of [-2.25, 2.25]) {
+      expect(new Vector3(x, y, z).dot(n)).toBeLessThan(inner)
+    }
+    expect(span('z').max - span('z').min).toBeLessThanOrEqual(4 * 1.7)
+    expect(span('x').max - span('x').min).toBeLessThan(2.5) // a slab beside the arm, not sticking out
+    expect(span('y').max - span('y').min).toBeGreaterThan(11)
+    expect(span('y').max - span('y').min).toBeLessThan(14)
+    // Centred on the forearm (the arm spans y -10..2 and z -2..2).
+    expect((span('y').min + span('y').max) / 2).toBeCloseTo(-6)
+    expect(Math.abs((span('z').min + span('z').max) / 2)).toBeLessThan(0.5)
+    // Art (+z in shield space) faces away from the body, a little towards the front; its top is up.
+    const facing = new Vector3(0, 0, 1).transformDirection(m)
+    expect(facing.x).toBeGreaterThan(0.95)
+    expect(facing.z).toBeGreaterThan(0.1)
+    expect(new Vector3(0, 1, 0).transformDirection(m).y).toBeCloseTo(1)
+    // Unmirrored: seen from outside (+x, looking -x, so the viewer's right is -z), the art's right
+    // edge (shield +x) is on the viewer's right.
+    expect(new Vector3(1, 0, 0).transformDirection(m).z).toBeLessThan(-0.95)
+    // The handle stays inside the arm (x -1..3) apart from the strap in the gap.
+    const handle = pts.slice(24)
+    expect(Math.min(...handle.map((p) => p.x))).toBeGreaterThan(-1)
   })
 })
 

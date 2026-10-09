@@ -279,29 +279,40 @@ export function shieldQuads(): Quad[] {
   ]
 }
 
-const DEG = Math.PI / 180
+/** Shield size on the preview model, relative to vanilla: about torso height (22 px -> ~12). */
+export const SHIELD_SCALE = 0.55
+/** The left arm's skin overlay in arm space: x up to 3.25 and z -2.25..2.25 (wide arms). */
+export const ARM_OUTER_X = 3.25
+export const ARM_HALF_DEPTH = 2.25
+/** Gap kept between the overlay and the plate. */
+export const SHIELD_CLEARANCE = 0.1
+/** Height of the plate's centre in arm space: around the forearm (the arm spans y -10..2). */
+export const SHIELD_CENTRE_Y = -6
+/** Turned this far towards the front so a front view still sees some of the art. */
+export const SHIELD_YAW = 12
 
 /**
- * Where vanilla draws a shield held in the off hand, in skinview3d's left-arm space (pivot at the
- * shoulder, y up, face towards +z), for geometry built by shieldQuads + toBuffers.
+ * Where the preview puts the shield, in skinview3d's left-arm space (pivot at the shoulder, y up,
+ * face towards +z), for geometry built by shieldQuads + toBuffers.
  *
- * The chain is ItemInHandLayer (rotate X -90, Y 180, translate (-1/16, 2/16, -10/16)), the shield
- * item's thirdperson_lefthand display (translation [10, 6, 12] mirrored to x -10, rotation Y 90
- * mirrored to -90), the builtin model's (-8, -8, -8) offset and ShieldModel's scale (1, -1, -1),
- * all in model pixels, wrapped in the Minecraft <-> skinview3d turn (x, -y, -z).
+ * Not vanilla's held pose (that one is huge and lies sideways, reading badly in a shop): the
+ * shield hangs upright along the outside of the forearm, as if strapped to it. Turned about y so
+ * the art (+z) faces away from the body (+x), {@link SHIELD_YAW} degrees towards the front, top
+ * up and unmirrored; scaled to {@link SHIELD_SCALE}; pushed out until the plate's inner face clears
+ * the arm's front corner. The handle then sits inside the arm, peeking out only as a strap.
  */
 export function offhandShieldMatrix(): Matrix4 {
-  const flip = new Matrix4().makeScale(1, -1, -1)
-  return flip
-    .clone()
-    .multiply(new Matrix4().makeRotationX(-90 * DEG))
-    .multiply(new Matrix4().makeRotationY(180 * DEG))
-    .multiply(new Matrix4().makeTranslation(-1, 2, -10))
-    .multiply(new Matrix4().makeTranslation(-10, 6, 12))
-    .multiply(new Matrix4().makeRotationY(-90 * DEG))
-    .multiply(new Matrix4().makeTranslation(-8, -8, -8))
-    .multiply(new Matrix4().makeScale(1, -1, -1))
-    .multiply(flip)
+  const plateInnerZ = 1 // the plate spans z 1..2 after the (x, -y, -z) turn
+  const yaw = (SHIELD_YAW * Math.PI) / 180
+  // The inner face is a line through (innerX, 0) leaning inwards towards +z by tan(yaw); it must
+  // pass outside the overlay's front-outer corner (ARM_OUTER_X, ARM_HALF_DEPTH).
+  const innerX = ARM_OUTER_X + SHIELD_CLEARANCE + ARM_HALF_DEPTH * Math.tan(yaw)
+  // The shield origin (handle side) sits inwards of the plate by its scaled depth.
+  const centreX = innerX - (plateInnerZ * SHIELD_SCALE) / Math.cos(yaw)
+  return new Matrix4()
+    .makeTranslation(centreX, SHIELD_CENTRE_Y, 0)
+    .multiply(new Matrix4().makeRotationY(Math.PI / 2 - yaw))
+    .multiply(new Matrix4().makeScale(SHIELD_SCALE, SHIELD_SCALE, SHIELD_SCALE))
 }
 
 // ---------------------------------------------------------------------------

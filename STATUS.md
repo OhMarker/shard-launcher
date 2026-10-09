@@ -2,6 +2,15 @@
 
 Last updated 2026-10-08.
 
+## 0.4.0: account bridge and credits (2026-10-08)
+- While a Shard instance runs, a loopback-only account bridge (random port, per-launch secret,
+  Bearer auth, Origin rejected) lets Shard Client 0.8.0 switch accounts in-game
+  (`src/main/launch/account-bridge*.ts`, contract in shard-client/docs/ACCOUNT-SWITCH-API.md,
+  CONTRACT.md section 5). Not yet tried with a real Microsoft account.
+- Credits "Made by OhMarker with the help of swxyzx2" + License dialog in the sidebar and
+  Settings → About; LICENSE (MIT) added at the repo root.
+- Verified: typecheck, lint, 314 Vitest tests; headless screenshot docs-screens/bridge-credits/.
+
 ## 0.3.0: released 2026-10-08
 - https://github.com/OhMarker/shard-launcher/releases/tag/v0.3.0. The tag run's Windows job failed
   on a GitHub upload HTTP 500; `gh workflow run release.yml -f tag=v0.3.0 -f platform=windows`

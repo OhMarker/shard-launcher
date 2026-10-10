@@ -105,7 +105,7 @@ export function useBuyCosmetic() {
       toast({
         kind: 'success',
         title: `${cosmetic.name} is yours`,
-        message: `${me.tokens} tokens left. Equip it whenever you like.`
+        message: `${me.tokens} Shards left. Equip it whenever you like.`
       })
     },
     onError: (err) => {

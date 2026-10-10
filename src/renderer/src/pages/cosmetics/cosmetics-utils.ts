@@ -308,10 +308,10 @@ export function toggleRarity(
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
 
-/** "OhMarker Set — 2000 tokens · save 1000"; just the name once owned or when not on sale. */
+/** "OhMarker Set — 2000 Shards · save 1000"; just the name once owned or when not on sale. */
 export function bundleHeadline(name: string, state: BundleState): string {
   if (state.complete || state.price === null) return name
-  return `${name} — ${state.price} tokens${state.saving !== null ? ` · save ${state.saving}` : ''}`
+  return `${name} — ${state.price} Shards${state.saving !== null ? ` · save ${state.saving}` : ''}`
 }
 
 /** The small line next to the buy button, or null when the headline says it all. */
@@ -337,7 +337,7 @@ export function bundleConfirmMessage(
 ): string {
   const price = state.price ?? 0
   const list = state.missing.map((id) => names.get(id) ?? id).join(', ')
-  let text = `It costs ${price} tokens and gives you ${list}. You will have ${tokens - price} left.`
+  let text = `It costs ${price} Shards and gives you ${list}. You will have ${tokens - price} left.`
   if (state.missingPrice !== null && state.missingPrice < price) {
     text += ` Buying ${state.missing.length === 1 ? 'it' : 'them'} one by one costs ${state.missingPrice}.`
   }

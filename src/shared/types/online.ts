@@ -52,6 +52,72 @@ export interface AdminStats {
   purchases: number
   codeRedemptions: number
   staff: number
+  /** Paid Store purchases (refunded ones not counted) and what they brought in, in USD cents. */
+  storePurchases: number
+  storeRevenueCents: number
+}
+
+/** A Shard pack in the Store (`GET /v1/store/packs`). Prices are USD cents. */
+export interface StorePack {
+  id: string
+  name: string
+  priceCents: number
+  shards: number
+  /** Extra Shards over the cheapest pack's rate, whole percent. */
+  bonusPercent: number
+  bestValue: boolean
+}
+
+export interface StorePacks {
+  /** False until the API has a payment key: packs show but cannot be bought. */
+  open: boolean
+  /** Stripe test keys: test cards only, no real money (staff only outside local dev). */
+  testMode: boolean
+  packs: StorePack[]
+}
+
+export type StorePurchaseStatus = 'open' | 'paid' | 'expired' | 'refunded' | 'disputed'
+
+/** One Stripe checkout and what happened to it. */
+export interface StorePurchase {
+  id: string
+  packId: string
+  packName: string
+  priceCents: number
+  shards: number
+  status: StorePurchaseStatus
+  createdAt: number
+  creditedAt: number | null
+}
+
+/** `POST /v1/store/checkout`: the Stripe page the launcher opened in the browser. */
+export interface StoreCheckout {
+  sessionId: string
+  url: string
+}
+
+/** `POST /v1/store/confirm`: the purchase now, and whether this call added the Shards. */
+export interface StoreConfirm {
+  purchase: StorePurchase
+  credited: boolean
+}
+
+/** A pack as staff edit it (`GET /v1/admin/packs`), inactive ones too. */
+export interface AdminPack {
+  id: string
+  name: string
+  priceCents: number
+  shards: number
+  active: boolean
+  bestValue: boolean
+  sort: number
+}
+
+export interface AdminPacks {
+  open: boolean
+  packs: AdminPack[]
+  paidPurchases: number
+  revenueCents: number
 }
 
 /** A promo code as staff see it (`GET /v1/admin/codes`). */

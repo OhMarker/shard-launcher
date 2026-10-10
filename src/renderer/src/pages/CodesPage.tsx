@@ -66,7 +66,7 @@ function SuccessCard({ result, byId, previews }: { result: Redeemed; byId: Reado
             <p className="mt-0.5 text-[13px] text-fg-muted">
               {items.length > 0
                 ? 'Everything below is yours now, on every computer you sign in on. Equip it on the Cosmetics page.'
-                : 'The tokens are in your balance now.'}
+                : 'The Shards are in your balance now.'}
             </p>
           </div>
         </div>
@@ -77,8 +77,8 @@ function SuccessCard({ result, byId, previews }: { result: Redeemed; byId: Reado
                 <Coins className="size-6" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold tabular-nums text-fg">+{tokens} tokens</div>
-                <div className="text-[11px] text-fg-muted">You now have {result.me.tokens} tokens.</div>
+                <div className="text-sm font-semibold tabular-nums text-fg">+{tokens} Shards</div>
+                <div className="text-[11px] text-fg-muted">You now have {result.me.tokens} Shards.</div>
               </div>
             </li>
           )}
@@ -152,7 +152,7 @@ export function CodesPage() {
     <PageBody>
       <PageHeader
         title="Codes"
-        description="Got a promo code from Shard, a stream or an event? Redeem it here for tokens and cosmetics."
+        description="Got a promo code from Shard, a stream or an event? Redeem it here for Shards and cosmetics."
         action={online && <TokenBalance me={online.me} />}
       />
 

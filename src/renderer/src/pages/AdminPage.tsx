@@ -1,4 +1,4 @@
-import { LayoutDashboard, RefreshCw, ShieldCheck, Store, Ticket, UserCog, Users } from 'lucide-react'
+import { Gem, LayoutDashboard, RefreshCw, ShieldCheck, Store, Ticket, UserCog, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { canEditPlayers, ROLE_LABELS, staffRoleOf } from '@shared/online'
 import { useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ import { Tabs, type TabItem } from '@/components/ui/Tabs'
 import { OnlineEmptyState } from '@/components/online/OnlineNote'
 import { PlayerAvatar } from '@/components/online/Presence'
 import { CodesSection } from './admin/CodesSection'
+import { PacksSection } from './admin/PacksSection'
 import { OverviewSection, type StaffTab } from './admin/OverviewSection'
 import { PlayersSection } from './admin/PlayersSection'
 import { ShopSection } from './admin/ShopSection'
@@ -21,7 +22,7 @@ import { StaffSection } from './admin/StaffSection'
 import { useAdminCodes, useAdminMutations, useAdminShop } from './admin/useAdmin'
 import { useCosmeticsView } from './cosmetics/useCosmetics'
 
-const ALL_TABS: readonly StaffTab[] = ['overview', 'players', 'shop', 'codes', 'roles']
+const ALL_TABS: readonly StaffTab[] = ['overview', 'players', 'shop', 'packs', 'codes', 'roles']
 
 export function AdminPage() {
   const qc = useQueryClient()
@@ -51,6 +52,7 @@ export function AdminPage() {
         { value: 'overview', label: 'Overview', icon: <LayoutDashboard /> },
         { value: 'players', label: 'Players', icon: <Users /> },
         { value: 'shop', label: 'Shop', icon: <Store />, count: adminShop.data?.length },
+        { value: 'packs', label: 'Packs', icon: <Gem /> },
         { value: 'codes', label: 'Codes', icon: <Ticket />, count: codesQuery.data?.length },
         { value: 'roles', label: 'Roles', icon: <UserCog /> }
       ]
@@ -66,7 +68,7 @@ export function AdminPage() {
         title="Staff"
         description={
           canEdit || !role
-            ? 'Run Shard: players, the shop, promo codes and roles. Every change applies to live players right away.'
+            ? 'Run Shard: players, the shop, Shard packs, promo codes and roles. Every change applies to live players right away.'
             : 'Staff tools for the Shard API. Mods can look players up.'
         }
         action={
@@ -125,6 +127,7 @@ export function AdminPage() {
             )}
             {tab === 'players' && <PlayersSection canEdit={canEdit} names={names} shop={shop} m={m} />}
             {tab === 'shop' && canEdit && <ShopSection shop={shop} catalogue={catalogue} m={m} />}
+            {tab === 'packs' && canEdit && <PacksSection />}
             {tab === 'codes' && canEdit && (
               <CodesSection
                 codes={codesQuery.data}

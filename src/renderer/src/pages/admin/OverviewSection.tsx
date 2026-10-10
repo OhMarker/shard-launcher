@@ -14,7 +14,7 @@ import { CosmeticTile } from '@/components/cosmetics/CosmeticTile'
 import { SaleTag } from '@/components/cosmetics/SaleTag'
 import { useAdminStats } from './useAdmin'
 
-export type StaffTab = 'overview' | 'players' | 'shop' | 'codes' | 'roles'
+export type StaffTab = 'overview' | 'players' | 'shop' | 'packs' | 'codes' | 'roles'
 
 const nf = new Intl.NumberFormat('en-US')
 
@@ -94,8 +94,8 @@ export function OverviewSection({ shop, codes, catalogue, onOpen }: OverviewSect
           <StatCard icon={<Users />} label="Players" value={s?.players ?? null} hint="Signed in to Shard" tone="accent" />
           <StatCard icon={<Gamepad2 />} label="In game now" value={s?.inGameNow ?? null} hint="Last 5 minutes" tone="success" live />
           <StatCard icon={<Activity />} label="Active today" value={s?.activeToday ?? null} hint="Played in the last 24 hours" tone="info" />
-          <StatCard icon={<Coins />} label="Tokens held" value={s?.tokensHeld ?? null} hint="Across every player" tone="warning" />
-          <StatCard icon={<ShoppingBag />} label="Purchases" value={s?.purchases ?? null} hint="Bought with tokens" tone="accent" />
+          <StatCard icon={<Coins />} label="Shards held" value={s?.tokensHeld ?? null} hint="Across every player" tone="warning" />
+          <StatCard icon={<ShoppingBag />} label="Purchases" value={s?.purchases ?? null} hint="Bought with Shards" tone="accent" />
           <StatCard icon={<Ticket />} label="Code redemptions" value={s?.codeRedemptions ?? null} hint="All rounds" tone="danger" />
           <StatCard icon={<ShieldCheck />} label="Staff" value={s?.staff ?? null} hint="Owners, admins and mods" tone="neutral" />
           <StatCard
@@ -191,7 +191,7 @@ export function OverviewSection({ shop, codes, catalogue, onOpen }: OverviewSect
                 <li key={c.code} className="flex items-center gap-3 px-4 py-2.5">
                   <span className="font-mono text-[13px] font-semibold tracking-wide text-fg">{c.code}</span>
                   <span className="min-w-0 flex-1 truncate text-xs text-fg-muted">
-                    {[c.tokens > 0 ? `${c.tokens} tokens` : null, ...c.items.map((id) => byId.get(id)?.name ?? id)]
+                    {[c.tokens > 0 ? `${c.tokens} Shards` : null, ...c.items.map((id) => byId.get(id)?.name ?? id)]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>

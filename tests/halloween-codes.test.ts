@@ -212,7 +212,7 @@ describe('staff code form', () => {
     expect(errors({ code: 'x' })).toHaveProperty('code')
     expect(errors({ tokens: '-5' })).toHaveProperty('tokens')
     expect(errors({ tokens: '1.5' })).toHaveProperty('tokens')
-    expect(errors({ tokens: '0', items: [] })).toEqual({ items: 'A code must give tokens or an item' })
+    expect(errors({ tokens: '0', items: [] })).toEqual({ items: 'A code must give Shards or an item' })
     expect(errors({ items: Array.from({ length: 21 }, (_, i) => `cape-${i}`) })).toHaveProperty('items')
     expect(errors({ maxUses: '0' })).toHaveProperty('maxUses')
     expect(errors({ expiresAt: '2026-10-01T00:00' })).toEqual({ expiresAt: 'That time has already passed' })
@@ -272,7 +272,9 @@ describe('staff code form', () => {
       tokensHeld: 0,
       purchases: 0,
       codeRedemptions: 0,
-      staff: 0
+      staff: 0,
+      storePurchases: 0,
+      storeRevenueCents: 0
     })
   })
 })

@@ -164,7 +164,7 @@ describe('bundle pricing and ownership', () => {
     expect(state).toMatchObject({ complete: false, price: 2000, missingPrice: 3000, saving: 1000 })
     expect(state.missing).toEqual(SET)
     expect(state.buy).toEqual({ kind: 'buy', price: 2000 })
-    expect(bundleHeadline('OhMarker Set', state)).toBe('OhMarker Set — 2000 tokens · save 1000')
+    expect(bundleHeadline('OhMarker Set', state)).toBe('OhMarker Set — 2000 Shards · save 1000')
     expect(bundleNote(state)).toBeNull()
   })
 
@@ -176,7 +176,7 @@ describe('bundle pricing and ownership', () => {
     const state = bundleState(BUNDLE, ['cape-ohmarker'], SHOP, 5000)
     expect(state).toMatchObject({ price: 2000, missingPrice: 2000, saving: null })
     expect(state.items.find((i) => i.id === 'cape-ohmarker')?.owned).toBe(true)
-    expect(bundleHeadline('OhMarker Set', state)).toBe('OhMarker Set — 2000 tokens')
+    expect(bundleHeadline('OhMarker Set', state)).toBe('OhMarker Set — 2000 Shards')
     expect(bundleNote(state)).toBe('Same price as the 2 items you are missing.')
   })
 
@@ -185,10 +185,10 @@ describe('bundle pricing and ownership', () => {
     expect(state.missing).toEqual(['bandana-ohmarker'])
     expect(bundleNote(state)).toBe('You only need 1 item; it costs 1000 on its own.')
     expect(bundleConfirmMessage(state, 5000, NAMES)).toBe(
-      'It costs 2000 tokens and gives you OhMarker Bandana. You will have 3000 left. Buying it one by one costs 1000.'
+      'It costs 2000 Shards and gives you OhMarker Bandana. You will have 3000 left. Buying it one by one costs 1000.'
     )
     expect(bundleConfirmMessage(bundleState(BUNDLE, [], SHOP, 5000), 5000, NAMES)).toBe(
-      'It costs 2000 tokens and gives you OhMarker Cape, OhMarker Shield, OhMarker Bandana. You will have 3000 left.'
+      'It costs 2000 Shards and gives you OhMarker Cape, OhMarker Shield, OhMarker Bandana. You will have 3000 left.'
     )
   })
 

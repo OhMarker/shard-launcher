@@ -124,7 +124,7 @@ export function CosmeticsPage() {
       message:
         c.type === 'bundle'
           ? `${bundleConfirmMessage(bundleFor(c), offer.tokens, names)} They are yours on every computer you sign in on.`
-          : `It costs ${offer.price} tokens. You will have ${offer.tokens - offer.price} left, and it is yours on every computer you sign in on.`,
+          : `It costs ${offer.price} Shards. You will have ${offer.tokens - offer.price} left, and it is yours on every computer you sign in on.`,
       confirmLabel: `Buy for ${offer.price}`
     })
     if (ok) buy.mutate(c)
@@ -281,7 +281,7 @@ export function CosmeticsPage() {
           state={onlineQuery.data}
           onRetry={() => refreshOnline.mutate()}
           retrying={refreshOnline.isPending}
-          signedOutHint="Sign in to earn tokens and buy cosmetics"
+          signedOutHint="Sign in to earn Shards and buy cosmetics"
         />
       )}
 

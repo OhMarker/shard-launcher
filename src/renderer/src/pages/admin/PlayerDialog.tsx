@@ -42,7 +42,7 @@ function TokensForm({ player, m }: { player: AdminPlayer; m: AdminMutations }) {
     if (!valid) return
     if (taking) {
       const ok = await confirm({
-        title: `Take ${-amount} tokens from ${player.name}?`,
+        title: `Take ${-amount} Shards from ${player.name}?`,
         message: `They have ${player.tokens}. A balance never goes below 0.`,
         confirmLabel: `Take ${-amount}`,
         danger: true
@@ -60,7 +60,7 @@ function TokensForm({ player, m }: { player: AdminPlayer; m: AdminMutations }) {
         step={1}
         leftIcon={<Coins />}
         placeholder="Amount, negative to take"
-        aria-label="Token amount"
+        aria-label="Shard amount"
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
         error={raw.trim() !== '' && !valid ? 'A whole number, not 0, up to 1,000,000 either way.' : null}
@@ -87,8 +87,8 @@ export function PlayerDialog({ player, open, onClose, items, m, canEdit }: Playe
       title: `Revoke ${item.name} from ${p.name}?`,
       message:
         p.cape === item.id
-          ? 'They are wearing it; it comes off right away. Tokens they spent are not refunded.'
-          : 'Tokens they spent are not refunded.',
+          ? 'They are wearing it; it comes off right away. Shards they spent are not refunded.'
+          : 'Shards they spent are not refunded.',
       confirmLabel: 'Revoke',
       danger: true
     })
@@ -124,17 +124,17 @@ export function PlayerDialog({ player, open, onClose, items, m, canEdit }: Playe
             </div>
             <div className="text-right">
               <div className="text-lg font-semibold tabular-nums text-fg">{player.tokens}</div>
-              <div className="text-[11px] text-fg-subtle">tokens</div>
+              <div className="text-[11px] text-fg-subtle">Shards</div>
             </div>
           </div>
 
           {canEdit ? (
             <section className="space-y-2">
-              <div className="text-[13px] font-medium text-fg">Give or take tokens</div>
+              <div className="text-[13px] font-medium text-fg">Give or take Shards</div>
               <TokensForm key={player.uuid} player={player} m={m} />
             </section>
           ) : (
-            <p className="text-xs text-fg-muted">Mods can look players up. Owners and admins change tokens and cosmetics.</p>
+            <p className="text-xs text-fg-muted">Mods can look players up. Owners and admins change Shards and cosmetics.</p>
           )}
 
           <section className="space-y-2">
@@ -162,7 +162,7 @@ export function PlayerDialog({ player, open, onClose, items, m, canEdit }: Playe
                         )}
                       </div>
                       <div className="truncate text-[11px] text-fg-subtle">
-                        {item.id} · {item.price === null ? 'not in the shop' : `${item.price} tokens`}
+                        {item.id} · {item.price === null ? 'not in the shop' : `${item.price} Shards`}
                       </div>
                     </div>
                     {!canEdit ? null : owns ? (

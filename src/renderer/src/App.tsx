@@ -20,6 +20,7 @@ import { SkinsPage } from '@/pages/SkinsPage'
 import { CosmeticsPage } from '@/pages/CosmeticsPage'
 import { FriendsPage } from '@/pages/FriendsPage'
 import { CodesPage } from '@/pages/CodesPage'
+import { StorePage } from '@/pages/StorePage'
 import { AdminPage } from '@/pages/AdminPage'
 import { UpdatesPage } from '@/pages/UpdatesPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -32,6 +33,7 @@ const PAGE_COMPONENTS: Record<Page, () => JSX.Element> = {
   mods: ModsPage,
   skins: SkinsPage,
   cosmetics: CosmeticsPage,
+  store: StorePage,
   codes: CodesPage,
   friends: FriendsPage,
   updates: UpdatesPage,

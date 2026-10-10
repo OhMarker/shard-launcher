@@ -76,11 +76,11 @@ export function useAdminMutations(selfUuid: string | null) {
       applyPlayer(player)
       toast({
         kind: 'success',
-        title: vars.amount >= 0 ? `Gave ${vars.amount} tokens to ${player.name}` : `Took ${-vars.amount} tokens from ${player.name}`,
-        message: `${player.name} now has ${player.tokens} tokens.`
+        title: vars.amount >= 0 ? `Gave ${vars.amount} Shards to ${player.name}` : `Took ${-vars.amount} Shards from ${player.name}`,
+        message: `${player.name} now has ${player.tokens} Shards.`
       })
     },
-    onError: fail('Could not change the tokens')
+    onError: fail('Could not change the Shards')
   })
 
   const grant = useMutation({
@@ -103,7 +103,7 @@ export function useAdminMutations(selfUuid: string | null) {
       toast({
         kind: 'success',
         title: vars.price === null ? 'Removed from the shop' : 'Price saved',
-        message: vars.price === null ? `${vars.id} is no longer for sale.` : `${vars.id} now costs ${vars.price} tokens.`
+        message: vars.price === null ? `${vars.id} is no longer for sale.` : `${vars.id} now costs ${vars.price} Shards.`
       })
     },
     onError: fail('Could not change the shop')

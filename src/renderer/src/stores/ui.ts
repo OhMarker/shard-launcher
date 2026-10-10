@@ -7,6 +7,7 @@ export type Page =
   | 'mods'
   | 'skins'
   | 'cosmetics'
+  | 'store'
   | 'codes'
   | 'friends'
   | 'updates'
@@ -14,7 +15,7 @@ export type Page =
   | 'admin'
 
 /** Sidebar order. Admin is listed only for Shard admins. */
-export const PAGES: Page[] = ['home', 'versions', 'mods', 'skins', 'cosmetics', 'codes', 'friends', 'updates', 'settings', 'admin']
+export const PAGES: Page[] = ['home', 'versions', 'mods', 'skins', 'cosmetics', 'store', 'codes', 'friends', 'updates', 'settings', 'admin']
 
 export function isPage(value: string): value is Page {
   return (PAGES as string[]).includes(value)

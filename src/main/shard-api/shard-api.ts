@@ -9,6 +9,7 @@
  *   it (proof.ts), verify. The Minecraft access token goes to Mojang only; the Shard session
  *   token lives in memory and is never logged or written to disk.
  */
+import { shell } from 'electron'
 import { type ZodType } from 'zod'
 import { URLS } from '@shared/constants'
 import { ShardError } from '@shared/errors'
@@ -22,6 +23,8 @@ import {
   validateApiBase
 } from '@shared/online'
 import {
+  AdminPackSchema,
+  AdminPacksSchema,
   AdminPlayerSchema,
   AdminPlayersResponseSchema,
   AdminShopResponseSchema,
@@ -36,6 +39,10 @@ import {
   ServicesJsonSchema,
   ShardMeSchema,
   ShopResponseSchema,
+  StoreCheckoutSchema,
+  StoreConfirmSchema,
+  StorePacksSchema,
+  StorePurchasesSchema,
   VerifyResponseSchema
 } from '@shared/schemas/online'
 import { type ShopItem } from '@shared/types'
@@ -369,7 +376,34 @@ export function createShardApiService(ctx: AppContext): ShardApiService {
     },
     adminCodeSave: (input) => authed('POST', '/v1/admin/codes', PromoCodeSchema, input),
     adminCodeReset: (code) => authed('POST', '/v1/admin/codes/reset', PromoCodeSchema, { code }),
-    adminCodeDelete: (code) => authed('POST', '/v1/admin/codes/delete', DeletedCodeSchema, { code })
+    adminCodeDelete: (code) => authed('POST', '/v1/admin/codes/delete', DeletedCodeSchema, { code }),
+
+    async storePacks() {
+      return call(await resolveBase(), 'GET', '/v1/store/packs', StorePacksSchema)
+    },
+    async storeCheckout(packId) {
+      const base = await resolveBase()
+      const checkout = await authed('POST', '/v1/store/checkout', StoreCheckoutSchema, { packId })
+      // Only Stripe's own checkout page is opened (a local stand-in only against a local dev API).
+      const local = /^http:\/\/127\.0\.0\.1[:/]/.test(base) && /^http:\/\/127\.0\.0\.1[:/]/.test(checkout.url)
+      if (!/^https:\/\/checkout\.stripe\.com\//.test(checkout.url) && !local) {
+        throw new ShardError('HTTP', 'The store sent an unexpected payment page; nothing was opened')
+      }
+      await shell.openExternal(checkout.url)
+      log.info(`Store checkout opened for pack ${packId}`)
+      return checkout
+    },
+    async storeConfirm(sessionId) {
+      const result = await authed('POST', '/v1/store/confirm', StoreConfirmSchema, { sessionId })
+      if (result.credited) log.info(`Store purchase credited (+${result.purchase.shards} Shards)`)
+      return result
+    },
+    async storePurchases() {
+      const { purchases } = await authed('GET', '/v1/store/purchases', StorePurchasesSchema)
+      return purchases
+    },
+    adminPacks: () => authed('GET', '/v1/admin/packs', AdminPacksSchema),
+    adminPackSave: (pack) => authed('POST', '/v1/admin/packs', AdminPacksSchema, AdminPackSchema.parse(pack))
   }
   return service
 }
@@ -398,4 +432,10 @@ export function registerShardApiIpc(ctx: AppContext): void {
   handle('admin:codeSave', (input) => api().adminCodeSave(input))
   handle('admin:codeReset', ({ code }) => api().adminCodeReset(code))
   handle('admin:codeDelete', ({ code }) => api().adminCodeDelete(code))
+  handle('store:packs', () => api().storePacks())
+  handle('store:checkout', ({ packId }) => api().storeCheckout(packId))
+  handle('store:confirm', ({ sessionId }) => api().storeConfirm(sessionId))
+  handle('store:purchases', () => api().storePurchases())
+  handle('admin:packs', () => api().adminPacks())
+  handle('admin:packSave', (pack) => api().adminPackSave(pack))
 }

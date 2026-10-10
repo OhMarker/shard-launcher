@@ -13,6 +13,12 @@ import type {
   AdminStats,
   PromoCode,
   PromoCodeInput,
+  StoreCheckout,
+  StoreConfirm,
+  StorePacks,
+  StorePurchase,
+  AdminPack,
+  AdminPacks,
   RedeemResult,
   FriendsView,
   OnlineState,
@@ -273,6 +279,15 @@ export interface ShardApiService {
   adminCodeSave(input: PromoCodeInput): Promise<PromoCode>
   adminCodeReset(code: string): Promise<PromoCode>
   adminCodeDelete(code: string): Promise<{ deleted: string }>
+  /** `GET /v1/store/packs` (no sign-in needed). */
+  storePacks(): Promise<StorePacks>
+  /** Starts a Stripe checkout for a pack and opens it in the browser. */
+  storeCheckout(packId: string): Promise<StoreCheckout>
+  /** Asks the API whether a checkout was paid (credits the Shards once). */
+  storeConfirm(sessionId: string): Promise<StoreConfirm>
+  storePurchases(): Promise<StorePurchase[]>
+  adminPacks(): Promise<AdminPacks>
+  adminPackSave(pack: AdminPack): Promise<AdminPacks>
 }
 
 export interface SkinService {

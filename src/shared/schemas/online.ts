@@ -70,7 +70,54 @@ export const AdminStatsSchema = z.object({
   tokensHeld: z.number().int().catch(0).default(0),
   purchases: count,
   codeRedemptions: count,
-  staff: count
+  staff: count,
+  // Store totals (API 0005+); older APIs have no store.
+  storePurchases: count,
+  storeRevenueCents: count
+})
+
+const purchaseStatus = z.enum(['open', 'paid', 'expired', 'refunded', 'disputed']).catch('open')
+
+export const StorePackSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  priceCents: z.number().int().positive(),
+  shards: z.number().int().positive(),
+  bonusPercent: count,
+  bestValue: z.boolean().catch(false).default(false)
+})
+export const StorePacksSchema = z.object({
+  open: z.boolean().catch(false).default(false),
+  testMode: z.boolean().catch(false).default(false),
+  packs: z.array(StorePackSchema)
+})
+export const StorePurchaseSchema = z.object({
+  id: z.string().min(1),
+  packId: z.string(),
+  packName: z.string(),
+  priceCents: z.number().int(),
+  shards: z.number().int(),
+  status: purchaseStatus,
+  createdAt: z.number(),
+  creditedAt: z.number().nullable().catch(null).default(null)
+})
+export const StorePurchasesSchema = z.object({ purchases: z.array(StorePurchaseSchema) })
+export const StoreCheckoutSchema = z.object({ sessionId: z.string().min(1), url: z.string().url() })
+export const StoreConfirmSchema = z.object({ purchase: StorePurchaseSchema, credited: z.boolean() })
+export const AdminPackSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  priceCents: z.number().int(),
+  shards: z.number().int(),
+  active: z.boolean(),
+  bestValue: z.boolean(),
+  sort: z.number().int()
+})
+export const AdminPacksSchema = z.object({
+  open: z.boolean().catch(false).default(false),
+  packs: z.array(AdminPackSchema),
+  paidPurchases: count,
+  revenueCents: count
 })
 
 export const PromoCodeSchema = z.object({

@@ -154,7 +154,7 @@ export function CodeFormDialog({ open, editing, catalogue, m, onClose }: CodeFor
               data-autofocus
             />
           </Field>
-          <Field label="Tokens" hint="0 for items only">
+          <Field label="Shards" hint="0 for items only">
             <Input
               type="number"
               min={0}
@@ -162,7 +162,7 @@ export function CodeFormDialog({ open, editing, catalogue, m, onClose }: CodeFor
               leftIcon={<Coins />}
               value={draft.tokens}
               onChange={(e) => set('tokens', e.target.value)}
-              aria-label="Tokens"
+              aria-label="Shards"
               error={errors.tokens}
             />
           </Field>

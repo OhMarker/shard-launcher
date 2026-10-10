@@ -97,7 +97,7 @@ export function BundleCard({
                 <s className="text-sm font-normal text-fg-subtle" aria-label={`was ${sale?.was}`}>
                   {sale?.was}
                 </s>{' '}
-                tokens{state.saving !== null ? ` · save ${state.saving}` : ''}
+                Shards{state.saving !== null ? ` · save ${state.saving}` : ''}
               </>
             ) : (
               bundleHeadline(bundle.name, state)
@@ -158,10 +158,10 @@ export function BundleCard({
               loading={buying}
             />
           ) : state.price !== null ? (
-            <Tooltip content="Sign in to Shard to buy with tokens">
+            <Tooltip content="Sign in to Shard to buy with Shards">
               <span className="inline-flex">
                 <Button size="sm" variant="outline" disabled leftIcon={<Coins />}>
-                  {state.price} tokens
+                  {state.price} Shards
                 </Button>
               </span>
             </Tooltip>

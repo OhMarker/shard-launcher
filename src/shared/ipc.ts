@@ -6,6 +6,11 @@ import type {
   AdminStats,
   FriendsView,
   PromoCode,
+  StoreCheckout,
+  StoreConfirm,
+  StorePacks,
+  StorePurchase,
+  AdminPacks,
   RedeemResult,
   OnlineState,
   ShardMe,
@@ -278,6 +283,20 @@ export const ipcInputSchemas = {
     note: z.string().max(200)
   }),
   'admin:codeReset': z.object({ code: promoCode }),
+  'store:packs': none,
+  'store:checkout': z.object({ packId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/) }),
+  'store:confirm': z.object({ sessionId: z.string().regex(/^cs_[A-Za-z0-9_]{1,200}$/) }),
+  'store:purchases': none,
+  'admin:packs': none,
+  'admin:packSave': z.object({
+    id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/),
+    name: z.string().trim().min(1).max(40),
+    priceCents: z.number().int().min(50).max(99_999),
+    shards: z.number().int().min(1).max(1_000_000),
+    active: z.boolean(),
+    bestValue: z.boolean(),
+    sort: z.number().int().min(-1000).max(1000)
+  }),
   'admin:codeDelete': z.object({ code: promoCode }),
 
   // shard client
@@ -418,6 +437,12 @@ export interface IpcOutputs {
   'admin:codes': PromoCode[]
   'admin:codeSave': PromoCode
   'admin:codeReset': PromoCode
+  'store:packs': StorePacks
+  'store:checkout': StoreCheckout
+  'store:confirm': StoreConfirm
+  'store:purchases': StorePurchase[]
+  'admin:packs': AdminPacks
+  'admin:packSave': AdminPacks
   'admin:codeDelete': { deleted: string }
 
   'shard:manifest': ShardManifestView

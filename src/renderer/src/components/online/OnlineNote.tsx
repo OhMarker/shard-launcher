@@ -24,7 +24,7 @@ function copyFor(state: NotReady, signedOutHint: string): NoteCopy {
         title: 'Shard online features are not available yet',
         description:
           state.message === 'Shard online features are not available yet'
-            ? 'Tokens, the shop and friends will appear here as soon as the Shard server is online.'
+            ? 'Shards, the shop and friends will appear here as soon as the Shard server is online.'
             : `${state.message}. Everything else in the launcher keeps working.`
       }
     case 'error':

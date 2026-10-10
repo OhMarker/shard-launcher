@@ -431,7 +431,7 @@ export function validateCodeDraft(
   const items = [...new Set(draft.items)]
   if (items.length > 20) errors.items = 'At most 20 items'
   else if (!errors.tokens && tokens === 0 && items.length === 0) {
-    errors.items = 'A code must give tokens or an item'
+    errors.items = 'A code must give Shards or an item'
   }
   let maxUses: number | null = null
   const usesRaw = draft.maxUses.trim()
@@ -467,4 +467,65 @@ export function codeStatus(
   if (code.expiresAt !== null && now >= code.expiresAt) return 'expired'
   if (code.maxUses !== null && code.usesThisRound >= code.maxUses) return 'used-up'
   return 'active'
+}
+
+// ---------------------------------------------------------------------------
+// Store: Shard packs bought with real money (Stripe Checkout)
+// ---------------------------------------------------------------------------
+
+/** "$4.99" from USD cents. */
+export function formatUsd(cents: number): string {
+  const c = Math.max(0, Math.round(cents))
+  return `$${Math.floor(c / 100).toLocaleString('en-US')}.${String(c % 100).padStart(2, '0')}`
+}
+
+/** "2,800" */
+export function formatShards(n: number): string {
+  return Math.round(n).toLocaleString('en-US')
+}
+
+/** What a purchase's status means to the player. */
+export function purchaseStatusLabel(status: string): string {
+  switch (status) {
+    case 'paid':
+      return 'Added'
+    case 'refunded':
+      return 'Refunded'
+    case 'disputed':
+      return 'Disputed'
+    case 'expired':
+      return 'Not finished'
+    default:
+      return 'Waiting for payment'
+  }
+}
+
+/** The cheapest active pack that covers {@code missing} Shards (or the biggest one), for "Need N more". */
+export function packFor<T extends { shards: number; priceCents: number }>(packs: readonly T[], missing: number): T | null {
+  if (packs.length === 0) return null
+  const enough = [...packs].filter((p) => p.shards >= missing).sort((a, b) => a.priceCents - b.priceCents)
+  return enough[0] ?? [...packs].sort((a, b) => b.shards - a.shards)[0]
+}
+
+/** A readable line for a failed checkout or check. */
+export function storeErrorMessage(err: unknown): string {
+  const e = ShardError.from(err)
+  const status = (e.details as { status?: unknown } | undefined)?.status
+  if (e.code === 'SHARD_API_UNAVAILABLE' || e.code === 'OFFLINE' || e.code === 'TIMEOUT') {
+    return 'Could not reach the Shard server. Check your connection and try again.'
+  }
+  if (e.code === 'ACCOUNT_REQUIRED') return 'Sign in with your Microsoft account to buy Shards.'
+  if (status === 503) return 'The Store is not open yet.'
+  if (status === 429) return 'Too many unfinished checkouts. Finish one, or wait a little and try again.'
+  if (status === 404) return 'That pack is not for sale any more.'
+  const message = e.message.trim()
+  if (message === '' || /HTTP \d+/.test(message)) return 'Something went wrong talking to the Store. Try again.'
+  return /[.!?]$/.test(message) ? message : `${message}.`
+}
+
+/** "$4.99", "4.99" or "5" → 499 cents; null when it is not a price. */
+export function parseUsd(raw: string): number | null {
+  const m = raw.trim().replace(/^\$/, '').match(/^(\d{1,4})(?:\.(\d{1,2}))?$/)
+  if (!m) return null
+  return Number(m[1]) * 100 + Number((m[2] ?? '0').padEnd(2, '0'))
 }

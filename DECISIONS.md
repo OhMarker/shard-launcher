@@ -155,3 +155,15 @@ Running log of product and engineering decisions made while building Shard Launc
 - **Credits**: "Made by OhMarker with the help of SwxyzX2" and a License button at the bottom of
   the sidebar and in Settings -> About. The dialog shows the repo's `LICENSE` (MIT, added to the
   repo root to match package.json/README), bundled at build time with Vite's `?raw` import.
+
+## 0.7.0: the Shard Store
+- **Stripe Checkout in the browser, not inside the launcher.** Card details never touch Shard; the
+  launcher only opens a URL the API got from Stripe, and refuses anything that is not
+  `https://checkout.stripe.com/` (or a local stand-in against a local dev API).
+- **Two ways to credit, both idempotent.** The launcher asks `/v1/store/confirm` after paying (works
+  without webhooks, and in local tests), and Stripe's webhook credits even if the launcher was closed.
+  The API adds the Shards and marks the purchase in one transaction guarded by `credited_at IS NULL`.
+- **Pack prices live in the API** (`packs` table, Staff > Packs), so prices change without a release.
+- **Test keys are staff-only outside local dev**: a test card costs nothing, so a test-mode store
+  open to everyone would hand out real Shards.
+

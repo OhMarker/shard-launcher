@@ -113,7 +113,7 @@ export function IntegrationsSection() {
       />
       <UrlOverride
         label="Shard services"
-        description="Blank uses the official services.json, which tells the launcher where the Shard API (tokens, shop, friends) lives."
+        description="Blank uses the official services.json, which tells the launcher where the Shard API (Shards, shop, friends) lives."
         value={urls.services}
         placeholder={URLS.services}
         onCommit={(services) => void update({ manifestUrls: { ...urls, services } })}

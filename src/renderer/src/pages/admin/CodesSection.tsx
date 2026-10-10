@@ -274,7 +274,7 @@ export function CodesSection({ codes, loading, error, onRetry, retrying, catalog
             compact
             icon={<Ticket />}
             title={codes && codes.length > 0 ? 'No code matches' : 'No codes yet'}
-            description={codes && codes.length > 0 ? `Nothing matches "${query.trim()}".` : 'Create a code to give players tokens or cosmetics.'}
+            description={codes && codes.length > 0 ? `Nothing matches "${query.trim()}".` : 'Create a code to give players Shards or cosmetics.'}
             action={
               !codes?.length && (
                 <Button size="sm" variant="outline" leftIcon={<Plus />} onClick={() => openForm(null)}>

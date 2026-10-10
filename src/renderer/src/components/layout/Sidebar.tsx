@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Blocks, Download, House, Layers, Settings, ShieldCheck, Shirt, Sparkles, Ticket, Users } from 'lucide-react'
+import { Blocks, Download, Gem, House, Layers, Settings, ShieldCheck, Shirt, Sparkles, Ticket, Users } from 'lucide-react'
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { useShardStaffRole } from '@/hooks/useOnline'
 import { invoke, queryKeys } from '@/lib/api'
@@ -15,6 +15,7 @@ const NAV: Array<{ page: Page; label: string; icon: ReactNode }> = [
   { page: 'mods', label: 'Mods', icon: <Blocks /> },
   { page: 'skins', label: 'Skins', icon: <Shirt /> },
   { page: 'cosmetics', label: 'Cosmetics', icon: <Sparkles /> },
+  { page: 'store', label: 'Store', icon: <Gem /> },
   { page: 'codes', label: 'Codes', icon: <Ticket /> },
   { page: 'friends', label: 'Friends', icon: <Users /> },
   { page: 'updates', label: 'Updates', icon: <Download /> },

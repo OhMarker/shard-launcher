@@ -1,5 +1,23 @@
 # Status (handoff for a new session)
 
+## 0.7.0: the Shard Store (2026-10-10, committed, not released)
+- Currency is called **Shards** everywhere players read it (API fields stay `tokens`).
+- New sidebar page **Store** (`pages/StorePage.tsx`): five packs from the API (`GET /v1/store/packs`:
+  Starter $1.99/500, Small $4.99/1,300, Medium $9.99/2,800 Best value, Large $19.99/6,000, Mega
+  $49.99/16,000), Buy opens Stripe Checkout in the browser (`store:checkout`, only
+  `https://checkout.stripe.com/...` is ever opened), `stores/checkout.ts` polls `store:confirm` every
+  3 s (30 min max, survives page changes) and toasts "+N Shards"; purchase history; a Test mode
+  banner when the API runs on a Stripe test key; Terms link (website `terms/`). The Shop's "Need N
+  more" now opens the Store.
+- Staff page tab **Packs** (`admin/PacksSection.tsx`): revenue, paid purchases, edit name/price/
+  Shards/on sale/Best value, add pack (`admin:packs`, `admin:packSave`). Overview stats parse the
+  new `storePurchases`/`storeRevenueCents`.
+- Website (`docs/`): `terms/` (Terms of Sale and refunds), `store/thanks/`, `store/cancelled/`
+  (Stripe's return pages), footer link. **Not pushed yet**, so the return pages 404 until then.
+- Verified: typecheck, lint, 386 Vitest tests (tests/store.test.ts); screenshots of Store and
+  Staff > Packs against the local API; a real Stripe **test-mode** checkout (4242 card) paid
+  through checkout.stripe.com and credited +1,300 Shards once (shard-api STATUS).
+
 Last updated 2026-10-09.
 
 ## 0.6.0: Halloween drop, promo codes, sales, Staff panel (2026-10-09)

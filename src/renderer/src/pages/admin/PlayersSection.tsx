@@ -119,7 +119,7 @@ export function PlayersSection({ canEdit, names, shop, m }: PlayersSectionProps)
           className={`${COLUMNS} border-b border-line bg-white/2 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-fg-subtle`}
         >
           <span>Player</span>
-          <span>Tokens</span>
+          <span>Shards</span>
           <span>Status</span>
           <span>Cosmetics</span>
           <span />

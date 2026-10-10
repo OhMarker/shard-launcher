@@ -1,6 +1,8 @@
 # Status (handoff for a new session)
 
-## 0.7.0: the Shard Store (2026-10-10, committed, not released)
+## 0.7.0: the Shard Store (released 2026-10-10)
+- Released: https://github.com/OhMarker/shard-launcher/releases/tag/v0.7.0 (Windows, macOS, Linux).
+  Shard API store deployed (migration 0005). Website pages are live.
 - Currency is called **Shards** everywhere players read it (API fields stay `tokens`).
 - New sidebar page **Store** (`pages/StorePage.tsx`): five packs from the API (`GET /v1/store/packs`:
   Starter $1.99/500, Small $4.99/1,300, Medium $9.99/2,800 Best value, Large $19.99/6,000, Mega
@@ -13,7 +15,7 @@
   Shards/on sale/Best value, add pack (`admin:packs`, `admin:packSave`). Overview stats parse the
   new `storePurchases`/`storeRevenueCents`.
 - Website (`docs/`): `terms/` (Terms of Sale and refunds), `store/thanks/`, `store/cancelled/`
-  (Stripe's return pages), footer link. **Not pushed yet**, so the return pages 404 until then.
+  (Stripe's return pages), footer link.
 - Verified: typecheck, lint, 386 Vitest tests (tests/store.test.ts); screenshots of Store and
   Staff > Packs against the local API; a real Stripe **test-mode** checkout (4242 card) paid
   through checkout.stripe.com and credited +1,300 Shards once (shard-api STATUS).

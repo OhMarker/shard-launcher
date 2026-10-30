@@ -5,7 +5,7 @@
 import { join } from 'node:path'
 import { satisfies, validRange } from 'semver'
 import { ShardError, type ShardErrorCode } from '@shared/errors'
-import { fallbackJavaMajor } from '@shared/minecraft-version'
+import { compareLooseSemver, fallbackJavaMajor } from '@shared/minecraft-version'
 import { type VersionJson } from '@shared/schemas/mojang'
 import {
   type AccountBridgeInfo,
@@ -131,11 +131,24 @@ export async function runPipeline(input: PipelineInput): Promise<PreparedGame> {
   let resolved = vanilla
   if (instance.type === 'shard') {
     resolved = await step('fabric', async () => {
+      // Bundled mods auto-update and can start requiring a newer loader (Sodium Extra 0.9.5
+      // needs 0.20.1), so follow Fabric's newest stable loader instead of pinning the first
+      // one forever. Offline, keep the saved loader; only a first launch needs the network.
       let loaderVersion = instance.fabricLoader
-      if (!loaderVersion) {
-        loaderVersion = (await resolveLoader(mc, signal)).loader.version
+      let latest: string | null = null
+      try {
+        latest = (await resolveLoader(mc, signal)).loader.version
+      } catch (err) {
+        const error = ShardError.from(err)
+        if (!loaderVersion || !isNetworkError(error)) throw error
+        con.launcher(`Fabric loader check skipped: ${error.message}`, 'warn')
+      }
+      if (latest && (!loaderVersion || compareLooseSemver(latest, loaderVersion) > 0)) {
+        if (loaderVersion) con.launcher(`Updating Fabric loader ${loaderVersion} -> ${latest}`)
+        loaderVersion = latest
         await patchInstance({ fabricLoader: loaderVersion })
       }
+      if (!loaderVersion) throw new ShardError('FABRIC_UNAVAILABLE', `Fabric does not support ${mc} yet`)
       const profile = await fetchProfile(mc, loaderVersion, ctx.paths.versions, signal)
       return mergeProfiles(vanilla, profile)
     })
